@@ -1,1 +1,171 @@
-/* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+@import "@angular/material/prebuilt-themes/pink-bluegrey.css";
+
+:root {
+  --primary-pink: #d81b60; 
+  --premium-accent: #ff2d81;
+  --luxury-magenta: #6a1b9a;
+  --deep-rose: #ad1457;
+  --bg-main: #fffafc; /* Una pizca de rosa, muy profesional */
+  --bg-card: #ffffff;
+  --dark-text: #1a1a1a; /* Más oscuro para máximo contraste */
+  --subtle-text: #5f6368;
+  --placeholder-text: rgba(0, 0, 0, 0.4);
+  --border-color: rgba(216, 27, 96, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --luxury-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  
+  --vibrant-gradient: linear-gradient(135deg, #d81b60 0%, #ff2d81 100%);
+  --soft-gradient: linear-gradient(135deg, #fffafc 0%, #ffffff 100%);
+}
+
+html, body { 
+  height: 100%; 
+  margin: 0; 
+  font-family: 'Outfit', sans-serif; /* Tipografía Premium */
+  color: var(--dark-text);
+  background-color: var(--bg-main); 
+}
+
+/* REGLA GLOBAL PARA INPUTS: Forzar texto oscuro */
+input, textarea, select {
+  color: #5d4037 !important;
+  -webkit-text-fill-color: #5d4037 !important;
+}
+
+/* Estilizar el borde real de Material (Notched Outline) - LIMPIEZA TOTAL */
+.mdc-notched-outline__leading,
+.mdc-notched-outline__notch,
+.mdc-notched-outline__trailing {
+  border: none !important; /* Desactivamos los segmentos de Material */
+}
+
+/* Usar el wrapper como el único borde para evitar "líneas fantasmas" */
+.mat-mdc-text-field-wrapper {
+  background-color: var(--bg-card) !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--border-color) !important;
+  transition: all 0.3s ease;
+  overflow: visible !important; /* Permitir que el label flote hacia afuera */
+}
+
+/* OCULTAR PLACEHOLDER EN REPOSO: Evita solapamiento con el label */
+.mat-mdc-form-field:not(.mat-mdc-form-field-should-float) .mat-mdc-input-element::placeholder {
+  color: transparent !important;
+  opacity: 0 !important;
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
+  border-color: var(--primary-pink) !important;
+  border-width: 2px !important;
+  box-shadow: 0 0 0 4px rgba(216, 27, 96, 0.05) !important;
+}
+
+/* ELIMINAR LA LÍNEA VERTICAL QUE CRUZA EL ICONO: Ya no es necesaria por la unificación del wrapper */
+.mat-mdc-form-field-appearance-outline .mdc-notched-outline__leading {
+  width: 0 !important;
+}
+
+/* ELIMINAR LÍNEA DE ENFOQUE (FOCUS INDICATOR) */
+.mat-mdc-form-field-focus-indicator {
+  display: none !important;
+}
+
+/* FIX PARA ICONOS: Dar espacio para que no choquen con el texto */
+.mat-mdc-form-field-icon-prefix {
+  padding-right: 8px !important;
+  color: var(--deep-rose) !important;
+}
+
+.mat-mdc-form-field-has-icon-prefix .mdc-floating-label {
+  left: 42px !important;
+}
+
+.mat-mdc-form-field-has-icon-prefix .mdc-floating-label--float-above {
+  left: 12px !important; /* Vuelve a la muesca al subir */
+}
+
+/* FIX PARA BORDES SOBREPUESTOS (MDC NOTCH DINÁMICO) */
+.mat-mdc-form-field.mat-form-field-should-float .mdc-notched-outline__notch {
+  border-top: none !important; /* Solo se abre cuando el label flota */
+}
+
+/* Etiquetas siempre visibles con contraste */
+.mdc-floating-label {
+  color: var(--subtle-text) !important;
+}
+
+/* Forzar que el label flote por ENCIMA del borde superior */
+.mdc-floating-label--float-above {
+  background-color: var(--bg-card) !important;
+  color: var(--primary-pink) !important;
+  padding: 0 10px !important;
+  z-index: 50 !important;
+  transform: translateY(-1.2rem) scale(0.8) !important; /* Más arriba para "cortar" el borde */
+  font-weight: 800 !important;
+  letter-spacing: 0.5px;
+}
+
+/* Si hay icono, el label debe empezar después del icono incluso al flotar */
+.mat-mdc-form-field-has-icon-prefix .mdc-floating-label--float-above {
+  left: 40px !important;
+}
+
+/* Ajustar el padding interno para que el texto no choque con los iconos */
+.mat-mdc-text-field-wrapper .mat-mdc-form-field-flex {
+  padding-top: 8px !important;
+}
+
+.mat-focused .mdc-floating-label {
+  color: var(--primary-pink) !important;
+}
+
+/* Forzar que los títulos de cards sean constantes */
+mat-card-title, .card-title {
+  color: var(--primary-pink) !important;
+  font-weight: 800 !important;
+  font-family: 'Outfit', sans-serif !important;
+  letter-spacing: -0.5px;
+}
+
+/* Tablas Premium */
+.mat-mdc-header-cell {
+  color: var(--primary-pink) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 11px !important;
+  background-color: rgba(216, 27, 96, 0.02) !important;
+}
+
+.mat-mdc-cell {
+  color: var(--dark-text) !important;
+  font-size: 14px !important;
+}
+
+/* Forzar fondos claros en las filas para evitar temas oscuros accidentales */
+.mat-mdc-table {
+  background-color: white !important;
+}
+.mat-mdc-row {
+  background-color: white !important;
+  border-bottom-color: rgba(0,0,0,0.05) !important;
+}
+.mat-mdc-row:hover {
+  background-color: rgba(216, 27, 96, 0.02) !important;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--light-pink);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--secondary-pink);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-pink);
+}
