@@ -2,10 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+// Interfaz que coincide con CategoriaResponse del backend
 export interface Categoria {
-  id?: number;
+  id: number;
   nombre: string;
-  descripcion?: string;
+  createdAt?: string;
 }
 
 @Injectable({
@@ -19,12 +20,12 @@ export class CategoriaService {
     return this.http.get<Categoria[]>(this.apiUrl);
   }
 
-  crear(categoria: Categoria): Observable<Categoria> {
-    return this.http.post<Categoria>(this.apiUrl, categoria);
+  crear(categoria: { nombre: string }): Observable<Categoria> {
+    return this.http.post<Categoria>(this.apiUrl, { nombre: categoria.nombre });
   }
 
   actualizar(id: number, categoria: Categoria): Observable<Categoria> {
-    return this.http.put<Categoria>(`${this.apiUrl}/${id}`, categoria);
+    return this.http.put<Categoria>(`${this.apiUrl}/${id}`, { nombre: categoria.nombre });
   }
 
   eliminar(id: number): Observable<void> {

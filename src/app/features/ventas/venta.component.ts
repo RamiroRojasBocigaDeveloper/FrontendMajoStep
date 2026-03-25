@@ -11,7 +11,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProductoService, Producto } from '../../core/services/producto.service';
 import { VentaService } from '../../core/services/venta.service';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService } from '../../auth/auth';
 
 interface ItemCarrito extends Producto {
   cantidadVenta: number;
@@ -286,13 +286,13 @@ export class VentaComponent {
 
   finalizarVenta() {
     this.loading = true;
-    const user = this.authService.getCurrentUser();
     
     // NOTA: Para este ejemplo, asumimos que ya tenemos una sesión de trabajo activa con ID 1
-    // En una implementación real, esto vendría del servicio de sesión
+    // y método de pago con ID 1. En una implementación real, vendrían de sus respectivos servicios
     const request = {
-      usuarioId: user.id || 1,
-      sesionId: 1, 
+      sesionId: 1,
+      metodoPagoId: 1,
+      descuento: 0,
       detalles: this.carrito().map(item => ({
         productoId: item.id!,
         cantidad: item.cantidadVenta

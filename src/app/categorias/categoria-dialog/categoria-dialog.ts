@@ -1,16 +1,32 @@
 import { Component, Inject, inject } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { CategoriaService, Categoria } from '../categoria.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { CategoriaService, Categoria } from '../categoria';
 
 @Component({
   selector: 'app-categoria-dialog',
-  templateUrl: './categoria-dialog.component.html',
-  styleUrls: ['./categoria-dialog.component.css'],
-  standalone: false
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSnackBarModule
+  ],
+  templateUrl: './categoria-dialog.html',
+  styleUrls: ['./categoria-dialog.css']
 })
-export class CategoriaDialogComponent {
+export class CategoriaDialog {
   form: FormGroup;
   isEdit: boolean;
   loading = false;
@@ -20,13 +36,12 @@ export class CategoriaDialogComponent {
   private snackBar = inject(MatSnackBar);
 
   constructor(
-    public dialogRef: MatDialogRef<CategoriaDialogComponent>,
+    public dialogRef: MatDialogRef<CategoriaDialog>,
     @Inject(MAT_DIALOG_DATA) public data: Categoria
   ) {
     this.isEdit = !!data;
     this.form = this.fb.group({
-      nombre: [data?.nombre || '', [Validators.required, Validators.minLength(3)]],
-      descripcion: [data?.descripcion || '']
+      nombre: [data?.nombre || '', [Validators.required, Validators.minLength(3)]]
     });
   }
 
