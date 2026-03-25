@@ -1,18 +1,34 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { CategoriaService, Categoria } from './categoria.service';
-import { CategoriaDialogComponent } from './categoria-dialog/categoria-dialog.component';
+import { CommonModule } from '@angular/common';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTableModule } from '@angular/material/table';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { CategoriaService, Categoria } from './categoria';
+import { CategoriaDialog } from './categoria-dialog/categoria-dialog';
 
 @Component({
   selector: 'app-categorias',
-  templateUrl: './categorias.component.html',
-  styleUrls: ['./categorias.component.css'],
-  standalone: false // No es standalone porque pertenece a CategoriasModule
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatTableModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    MatSnackBarModule,
+    MatDialogModule,
+    MatProgressSpinnerModule
+  ],
+  templateUrl: './categorias.html',
+  styleUrls: ['./categorias.css']
 })
-export class CategoriasComponent implements OnInit {
+export class Categorias implements OnInit {
   categorias: Categoria[] = [];
-  displayedColumns: string[] = ['id', 'nombre', 'descripcion', 'acciones'];
+  displayedColumns: string[] = ['id', 'nombre', 'acciones'];
   loading = false;
 
   private categoriaService = inject(CategoriaService);
@@ -38,7 +54,7 @@ export class CategoriasComponent implements OnInit {
   }
 
   abrirDialogo(categoria?: Categoria) {
-    const dialogRef = this.dialog.open(CategoriaDialogComponent, {
+    const dialogRef = this.dialog.open(CategoriaDialog, {
       width: '400px',
       data: categoria ? { ...categoria } : null
     });

@@ -8,8 +8,9 @@ export interface DetalleVentaRequest {
 }
 
 export interface VentaRequest {
-  usuarioId: number;
   sesionId: number;
+  metodoPagoId: number;
+  descuento?: number;
   detalles: DetalleVentaRequest[];
 }
 

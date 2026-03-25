@@ -8,7 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
-import { AuthService } from '../../../core/services/auth.service';
+import { AuthService } from '../auth/auth';
 
 @Component({
   selector: 'app-login',
@@ -24,10 +24,10 @@ import { AuthService } from '../../../core/services/auth.service';
     MatSnackBarModule,
     MatIconModule
   ],
-  templateUrl: './login.component.html',
-  styleUrl: './login.component.css'
+  templateUrl: './login.html',
+  styleUrl: './login.css'
 })
-export class LoginComponent {
+export class Login {
   loginForm: FormGroup;
   loading = false;
   hide = true;

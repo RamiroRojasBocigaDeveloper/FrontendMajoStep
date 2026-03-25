@@ -2,6 +2,20 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 
+// Interfaces que coinciden con los DTOs del backend
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  type: string;
+  email: string;
+  nombre: string;
+  rol: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -16,9 +30,9 @@ export class AuthService {
     }
   }
 
-  login(credentials: { email: string; password: String }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, credentials).pipe(
-      tap((response: any) => {
+  login(credentials: LoginRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
+      tap((response: AuthResponse) => {
         if (response && response.token) {
           localStorage.setItem('currentUser', JSON.stringify(response));
           this.currentUserSubject.next(response);
@@ -32,7 +46,7 @@ export class AuthService {
     this.currentUserSubject.next(null);
   }
 
-  getCurrentUser() {
+  getCurrentUser(): AuthResponse | null {
     return this.currentUserSubject.value;
   }
 
@@ -43,6 +57,10 @@ export class AuthService {
 
   isAdmin(): boolean {
     const user = this.getCurrentUser();
-    return user && user.rol === 'ADMINISTRADOR';
+    return !!user && user.rol === 'ADMINISTRADOR';
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.getToken();
   }
 }
