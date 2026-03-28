@@ -1,6 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
+import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,9 +11,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ProductoService, Producto } from '../../core/services/producto.service';
-import { VentaService } from '../../core/services/venta.service';
-import { AuthService } from '../../auth/auth';
+import { MatSelectModule } from '@angular/material/select';
+import { MatDialogModule } from '@angular/material/dialog';
+import { ProductoService, Producto } from '../productos/producto';
+import { VentaService } from './venta';
+import { MetodoPagoService, MetodoPago } from './metodo-pago';
+import { AuthService } from '../auth/auth';
 
 interface ItemCarrito extends Producto {
   cantidadVenta: number;
@@ -30,7 +35,10 @@ interface ItemCarrito extends Producto {
     MatButtonModule,
     MatIconModule,
     MatTableModule,
-    MatDividerModule
+    MatDividerModule,
+    MatSelectModule,
+    MatDialogModule,
+    MatAutocompleteModule
   ],
   template: `
     <div class="venta-grid">
@@ -45,13 +53,23 @@ interface ItemCarrito extends Producto {
           <mat-card-content>
             <div class="search-bar">
               <mat-form-field appearance="outline" class="flex-grow">
-                <mat-label>Referencia del Producto</mat-label>
-                <input matInput [(ngModel)]="searchQuery" (keyup.enter)="buscarProducto()" placeholder="Referencia: CHV-001">
-                <mat-icon matSuffix>qr_code</mat-icon>
+                <mat-label>Buscador de Productos (Nombre o Referencia)</mat-label>
+                <input matInput 
+                       [formControl]="searchControl"
+                       [matAutocomplete]="auto"
+                       placeholder="Ej: Sandalia, CHV-001...">
+                <mat-icon matSuffix>search</mat-icon>
+                
+                <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onProductSelected($event)">
+                  <mat-option *ngFor="let producto of productosFiltrados()" [value]="producto">
+                    <div class="product-option">
+                      <span class="prod-name">{{producto.nombre}}</span>
+                      <span class="prod-ref">{{producto.referencia}}</span>
+                      <span class="prod-price">{{producto.precioVenta | currency:'USD'}}</span>
+                    </div>
+                  </mat-option>
+                </mat-autocomplete>
               </mat-form-field>
-              <button mat-fab color="accent" (click)="buscarProducto()" class="margin-left">
-                <mat-icon>add_shopping_cart</mat-icon>
-              </button>
             </div>
           </mat-card-content>
         </mat-card>
@@ -93,9 +111,9 @@ interface ItemCarrito extends Producto {
               <ng-container matColumnDef="acciones">
                 <th mat-header-cell *matHeaderCellDef> - </th>
                 <td mat-cell *matCellDef="let item">
-                  <button mat-icon-button color="warn" (click)="eliminarItem(item)">
-                    <mat-icon>delete_forever</mat-icon>
-                  </button>
+                   <button mat-icon-button color="warn" (click)="eliminarItem(item)">
+                     <mat-icon>delete_forever</mat-icon>
+                   </button>
                 </td>
               </ng-container>
 
@@ -123,9 +141,18 @@ interface ItemCarrito extends Producto {
             <div class="items-count">
               <span>{{ carrito().length }} productos en el carrito</span>
             </div>
+
+            <mat-form-field appearance="outline" class="payment-select">
+              <mat-label>Método de Pago</mat-label>
+              <mat-select [(ngModel)]="metodoPagoSeleccionado">
+                <mat-option *ngFor="let mp of metodosPago" [value]="mp.id">
+                  {{mp.nombre}}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
             
             <button mat-raised-button class="checkout-btn" 
-                    [disabled]="carrito().length === 0 || loading"
+                    [disabled]="carrito().length === 0 || loading || !metodoPagoSeleccionado"
                     (click)="finalizarVenta()">
               <mat-icon>check_circle</mat-icon>
               {{ loading ? 'Procesando...' : 'FINALIZAR VENTA' }}
@@ -188,6 +215,23 @@ interface ItemCarrito extends Producto {
       letter-spacing: 1px;
       text-transform: uppercase;
     }
+    .payment-select {
+      width: 100%;
+      margin-top: 20px;
+    }
+    /* Estilo para que el select en la card del total se vea bien */
+    .payment-select ::ng-deep .mat-mdc-text-field-wrapper {
+      background-color: rgba(255,255,255,0.1) !important;
+    }
+    .payment-select ::ng-deep .mat-mdc-form-field-label {
+      color: rgba(255,255,255,0.8) !important;
+    }
+    .payment-select ::ng-deep .mat-mdc-select-value {
+      color: white !important;
+    }
+    .payment-select ::ng-deep .mat-mdc-select-arrow {
+      color: white !important;
+    }
     .search-bar { display: flex; align-items: baseline; }
     .flex-grow { flex-grow: 1; }
     .margin-left { margin-left: 15px; }
@@ -225,31 +269,59 @@ interface ItemCarrito extends Producto {
       min-width: 25px;
       text-align: center;
     }
+    .product-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      gap: 15px;
+    }
+    .prod-name { font-weight: 600; flex: 1; }
+    .prod-ref { font-family: monospace; color: var(--subtle-text); font-size: 12px; }
+    .prod-price { color: var(--primary-pink); font-weight: 700; }
   `]
 })
-export class VentaComponent {
-  searchQuery = '';
+export class Ventas implements OnInit {
+  searchControl = new FormControl('');
   loading = false;
+  productosFiltrados = signal<Producto[]>([]);
   carrito = signal<ItemCarrito[]>([]);
   displayedColumns: string[] = ['producto', 'precio', 'cantidad', 'subtotal', 'acciones'];
 
   private productoService = inject(ProductoService);
   private ventaService = inject(VentaService);
-  private authService = inject(AuthService);
+  private metodoPagoService = inject(MetodoPagoService);
   private snackBar = inject(MatSnackBar);
 
-  buscarProducto() {
-    if (!this.searchQuery) return;
-    
-    this.productoService.obtenerPorReferencia(this.searchQuery).subscribe({
-      next: (producto) => {
-        this.agregarAlCarrito(producto);
-        this.searchQuery = '';
-      },
-      error: () => {
-        this.snackBar.open('Producto no encontrado', 'Cerrar', { duration: 2000 });
-      }
+  metodosPago: MetodoPago[] = [];
+  metodoPagoSeleccionado = 1;
+
+  ngOnInit() {
+    // Configurar búsqueda dinámica
+    this.searchControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(value => {
+        if (typeof value === 'string' && value.length >= 2) {
+          return this.productoService.buscar(value);
+        }
+        return of([]);
+      })
+    ).subscribe(productos => {
+      this.productosFiltrados.set(productos);
     });
+
+    this.metodoPagoService.obtenerTodos().subscribe(res => {
+      this.metodosPago = res;
+      if (res.length > 0) this.metodoPagoSeleccionado = res[0].id;
+    });
+  }
+
+  onProductSelected(event: any) {
+    const producto = event.option.value as Producto;
+    this.agregarAlCarrito(producto);
+    this.searchControl.setValue('', { emitEvent: false });
+    this.productosFiltrados.set([]);
   }
 
   agregarAlCarrito(producto: Producto) {
@@ -262,6 +334,7 @@ export class VentaComponent {
     } else {
       this.carrito.set([...actual, { ...producto, cantidadVenta: 1 }]);
     }
+    this.snackBar.open(`Agregado: ${producto.nombre}`, 'OK', { duration: 2000 });
   }
 
   modificarCantidad(item: ItemCarrito, cambio: number) {
@@ -287,11 +360,9 @@ export class VentaComponent {
   finalizarVenta() {
     this.loading = true;
     
-    // NOTA: Para este ejemplo, asumimos que ya tenemos una sesión de trabajo activa con ID 1
-    // y método de pago con ID 1. En una implementación real, vendrían de sus respectivos servicios
     const request = {
       sesionId: 1,
-      metodoPagoId: 1,
+      metodoPagoId: this.metodoPagoSeleccionado,
       descuento: 0,
       detalles: this.carrito().map(item => ({
         productoId: item.id!,

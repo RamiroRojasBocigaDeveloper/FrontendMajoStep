@@ -6,7 +6,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { AuthService } from '../../auth/auth';
+import { AuthService } from '../auth/auth';
 
 @Component({
   selector: 'app-main-layout',
@@ -37,6 +37,10 @@ import { AuthService } from '../../auth/auth';
           <a mat-list-item routerLink="/inventario" routerLinkActive="active-link">
             <mat-icon matListItemIcon>inventory_2</mat-icon>
             <span matListItemTitle>Inventario</span>
+          </a>
+          <a mat-list-item routerLink="/categorias" routerLinkActive="active-link">
+            <mat-icon matListItemIcon>category</mat-icon>
+            <span matListItemTitle>Categorías</span>
           </a>
           <a mat-list-item routerLink="/gastos" routerLinkActive="active-link" *ngIf="isAdmin()">
             <mat-icon matListItemIcon>payments</mat-icon>
@@ -155,7 +159,7 @@ import { AuthService } from '../../auth/auth';
     }
   `]
 })
-export class MainLayoutComponent {
+export class Layout {
   private authService = inject(AuthService);
   private router = inject(Router);
 

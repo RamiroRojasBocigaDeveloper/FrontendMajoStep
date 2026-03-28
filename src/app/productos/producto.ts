@@ -6,9 +6,13 @@ export interface Producto {
   id?: number;
   nombre: string;
   referencia: string;
+  precioCompra: number;
   precioVenta: number;
   stockActual: number;
+  stockMinimo: number;
+  activo: boolean;
   categoriaNombre?: string;
+  categoria?: { id: number; nombre: string };
 }
 
 @Injectable({
@@ -28,5 +32,21 @@ export class ProductoService {
 
   obtenerStockBajo(): Observable<Producto[]> {
     return this.http.get<Producto[]>(`${this.apiUrl}/stock-bajo`);
+  }
+
+  crear(producto: any): Observable<Producto> {
+    return this.http.post<Producto>(this.apiUrl, producto);
+  }
+
+  actualizar(id: number, producto: any): Observable<Producto> {
+    return this.http.put<Producto>(`${this.apiUrl}/${id}`, producto);
+  }
+
+  eliminar(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  buscar(nombre: string): Observable<Producto[]> {
+    return this.http.get<Producto[]>(`${this.apiUrl}/buscar`, { params: { nombre } });
   }
 }

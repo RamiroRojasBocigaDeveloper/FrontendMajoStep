@@ -31,8 +31,8 @@
 
 .table-card {
     border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-    border: 1px solid var(--light-pink);
+    box-shadow: var(--luxury-shadow);
+    border: 1px solid var(--border-color);
     overflow: hidden;
 }
 

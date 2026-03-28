@@ -1,0 +1,85 @@
+import { Component, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { CategoriaGastoService, CategoriaGasto } from '../categoria-gasto';
+
+@Component({
+  selector: 'app-gasto-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule
+  ],
+  template: `
+    <h2 mat-dialog-title>Registrar Nuevo Gasto</h2>
+    <mat-dialog-content>
+      <form [formGroup]="form">
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Categoría de Gasto</mat-label>
+            <mat-select formControlName="categoriaGastoId">
+              <mat-option *ngFor="let cat of categorias" [value]="cat.id">
+                {{cat.nombre}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Monto</mat-label>
+            <input matInput type="number" formControlName="monto">
+            <span matPrefix>$&nbsp;</span>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Descripción / Detalle</mat-label>
+            <textarea matInput formControlName="descripcion" rows="3"></textarea>
+          </mat-form-field>
+        </div>
+      </form>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()">Cancelar</button>
+      <button mat-flat-button color="warn" [disabled]="form.invalid" (click)="onSave()">Confirmar Gasto</button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    .form-grid { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; }
+  `]
+})
+export class GastoDialog implements OnInit {
+  private fb = inject(FormBuilder);
+  private categoriaGastoService = inject(CategoriaGastoService);
+  dialogRef = inject(MatDialogRef<GastoDialog>);
+
+  categorias: CategoriaGasto[] = [];
+
+  form: FormGroup = this.fb.group({
+    sesionId: [1], // TODO: Obtener sesionId real
+    categoriaGastoId: ['', Validators.required],
+    monto: ['', [Validators.required, Validators.min(1)]],
+    descripcion: ['', [Validators.required, Validators.maxLength(200)]]
+  });
+
+  ngOnInit() {
+    this.categoriaGastoService.obtenerTodas().subscribe(res => this.categorias = res);
+  }
+
+  onCancel() { this.dialogRef.close(); }
+
+  onSave() {
+    if (this.form.valid) {
+      this.dialogRef.close(this.form.value);
+    }
+  }
+}
