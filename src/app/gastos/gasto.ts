@@ -1,0 +1,43 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface Gasto {
+  id?: number;
+  descripcion: string;
+  monto: number;
+  fecha: string;
+  categoriaNombre?: string;
+  nombreUsuario?: string;
+}
+
+export interface GastoRequest {
+  descripcion: string;
+  monto: number;
+  subcategoriaId: number;
+  sesionId: number;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class GastoService {
+  private http = inject(HttpClient);
+  private apiUrl = '/api/gastos';
+
+  obtenerTodos(): Observable<Gasto[]> {
+    return this.http.get<Gasto[]>(this.apiUrl);
+  }
+
+  obtenerPorSesion(sesionId: number): Observable<Gasto[]> {
+    return this.http.get<Gasto[]>(`${this.apiUrl}/sesion/${sesionId}`);
+  }
+
+  crear(request: GastoRequest): Observable<Gasto> {
+    return this.http.post<Gasto>(this.apiUrl, request);
+  }
+
+  eliminar(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+}

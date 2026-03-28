@@ -1,19 +1,27 @@
 import { Routes } from '@angular/router';
 import { Login } from './login/login';
-import { MainLayoutComponent } from './core/layout/main-layout.component';
-import { VentaComponent } from './features/ventas/venta.component';
+import { Layout } from './layout/layout';
+import { Ventas } from './ventas/ventas';
 import { Categorias } from './categorias/categorias';
+import { Inventarios } from './inventario/inventarios';
+import { Gastos } from './gastos/gastos';
+import { Reportes } from './reportes/reportes';
+import { Usuarios } from './usuarios/usuarios';
 import { authGuard } from './auth/auth-guard';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
   {
     path: '',
-    component: MainLayoutComponent,
+    component: Layout,
     canActivate: [authGuard],
     children: [
-      { path: 'ventas', component: VentaComponent },
+      { path: 'ventas', component: Ventas },
       { path: 'categorias', component: Categorias },
+      { path: 'inventario', component: Inventarios },
+      { path: 'gastos', component: Gastos },
+      { path: 'reportes', component: Reportes },
+      { path: 'usuarios', component: Usuarios },
       { path: '', redirectTo: 'ventas', pathMatch: 'full' }
     ]
   }

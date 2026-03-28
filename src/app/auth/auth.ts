@@ -57,7 +57,7 @@ export class AuthService {
 
   isAdmin(): boolean {
     const user = this.getCurrentUser();
-    return !!user && user.rol === 'ADMINISTRADOR';
+    return !!user && user.rol?.toUpperCase() === 'ADMINISTRADOR';
   }
 
   isAuthenticated(): boolean {

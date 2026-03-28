@@ -17,6 +17,10 @@
   
   --vibrant-gradient: linear-gradient(135deg, #d81b60 0%, #ff2d81 100%);
   --soft-gradient: linear-gradient(135deg, #fffafc 0%, #ffffff 100%);
+  --light-pink: rgba(216, 27, 96, 0.05);
+  --header-bg: #fdf2f8;
+  --pill-text: #ad1457;
+  --secondary-brown: #8d6e63;
 }
 
 html, body { 
@@ -120,12 +124,17 @@ input, textarea, select {
   color: var(--primary-pink) !important;
 }
 
-/* Forzar que los títulos de cards sean constantes */
-mat-card-title, .card-title {
+/* Forzar que los títulos de cards y h1 sean constantes */
+h1, mat-card-title, .card-title {
   color: var(--primary-pink) !important;
   font-weight: 800 !important;
   font-family: 'Outfit', sans-serif !important;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px !important;
+  margin: 0 !important;
+}
+
+h1 {
+  font-size: 28px !important;
 }
 
 /* Tablas Premium */
@@ -135,7 +144,8 @@ mat-card-title, .card-title {
   text-transform: uppercase;
   letter-spacing: 1px;
   font-size: 11px !important;
-  background-color: rgba(216, 27, 96, 0.02) !important;
+  background-color: var(--header-bg) !important;
+  color: var(--pill-text) !important;
 }
 
 .mat-mdc-cell {
@@ -146,13 +156,115 @@ mat-card-title, .card-title {
 /* Forzar fondos claros en las filas para evitar temas oscuros accidentales */
 .mat-mdc-table {
   background-color: white !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
 }
 .mat-mdc-row {
   background-color: white !important;
-  border-bottom-color: rgba(0,0,0,0.05) !important;
+  border-bottom: 1px solid rgba(0,0,0,0.03) !important;
 }
 .mat-mdc-row:hover {
   background-color: rgba(216, 27, 96, 0.02) !important;
+}
+
+/* FIX: Contraste para Chips (Roles y Etiquetas) */
+.mat-mdc-chip-set .mat-mdc-chip {
+  --mdc-chip-label-text-color: var(--dark-text);
+}
+
+.mat-mdc-chip.mat-primary, 
+.mat-mdc-chip[color="primary"] {
+  --mdc-chip-elevated-container-color: var(--primary-pink) !important;
+  --mdc-chip-label-text-color: #ffffff !important;
+  background-color: var(--primary-pink) !important;
+  color: #ffffff !important;
+}
+
+.mat-mdc-chip.mat-warn,
+.mat-mdc-chip[color="warn"] {
+  --mdc-chip-elevated-container-color: #f44336 !important;
+  --mdc-chip-label-text-color: #ffffff !important;
+  background-color: #f44336 !important;
+  color: #ffffff !important;
+}
+
+.status-active { color: #2e7d32 !important; font-weight: 700; }
+.status-inactive { color: #d32f2f !important; font-weight: 700; }
+
+/* REGLAS DE CLARIDAD (Basadas en Categorías) */
+.header-card {
+  border-radius: 20px !important;
+  padding: 15px 25px !important;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important;
+  background: white !important;
+  margin-bottom: 20px !important;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-content p {
+  color: var(--secondary-brown);
+  margin: 5px 0 0 0;
+  font-size: 14px;
+}
+
+.luxury-pill {
+  background-color: var(--light-pink) !important;
+  color: var(--pill-text) !important;
+  padding: 6px 14px !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  display: inline-block !important;
+}
+
+/* Forzar que mat-chips hereden el estilo de pill si no tienen color sólido */
+.mat-mdc-chip {
+  --mdc-chip-elevated-container-color: var(--light-pink) !important;
+  --mdc-chip-label-text-color: var(--pill-text) !important;
+}
+
+/* Forzar bordes delgados y FONDO CLARO en todos los layouts (Fix para tema oscuro de Material) */
+mat-card.luxury-card, 
+mat-card.table-card, 
+mat-card.pink-card,
+mat-card.total-card,
+.mat-mdc-card {
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--luxury-shadow) !important;
+  color: var(--dark-text) !important;
+}
+
+/* Limpieza de sombras y elevaciones por defecto de Material */
+.mdc-card {
+  background-color: var(--bg-card) !important;
+}
+
+/* FIX CRÍTICO: Fondo de Diálogos (Material Dialogs) */
+.cdk-overlay-pane .mat-mdc-dialog-container .mdc-dialog__surface,
+.mat-mdc-dialog-container .mdc-dialog__surface,
+.mat-mdc-dialog-surface,
+.mdc-dialog__surface {
+  background-color: var(--bg-card) !important;
+  color: var(--dark-text) !important;
+  border-radius: 24px !important;
+  box-shadow: var(--luxury-shadow) !important;
+}
+
+.mat-mdc-dialog-content {
+  color: var(--dark-text) !important;
+}
+
+.mat-mdc-dialog-title {
+  color: var(--primary-pink) !important;
+  font-weight: 800 !important;
 }
 
 /* Scrollbar personalizada */
