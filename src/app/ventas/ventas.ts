@@ -13,10 +13,13 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDialogModule } from '@angular/material/dialog';
+import { Router } from '@angular/router';
+
 import { ProductoService, Producto } from '../productos/producto';
 import { VentaService } from './venta';
 import { MetodoPagoService, MetodoPago } from './metodo-pago';
 import { AuthService } from '../auth/auth';
+import { SesionTrabajoService, SesionTrabajo } from '../sesiones-trabajo/sesion-trabajo';
 
 interface ItemCarrito extends Producto {
   cantidadVenta: number;
@@ -41,7 +44,7 @@ interface ItemCarrito extends Producto {
     MatAutocompleteModule
   ],
   template: `
-    <div class="venta-grid">
+    <div class="venta-grid" *ngIf="sesionActiva(); else cajaCerrada">
       <!-- Sección Izquierda: Buscador y Carrito -->
       <div class="pos-section">
         <mat-card class="pink-card">
@@ -172,6 +175,30 @@ interface ItemCarrito extends Producto {
         </mat-card>
       </div>
     </div>
+
+    <!-- PANTALLA DE BLOQUEO: CAJA CERRADA -->
+    <ng-template #cajaCerrada>
+      <div class="lock-screen" *ngIf="!checkingSession">
+        <mat-card class="lock-card">
+          <mat-card-content>
+            <mat-icon class="lock-icon">lock</mat-icon>
+            <h2>Caja Cerrada</h2>
+            <p>Por seguridad, no puedes realizar ventas si tu turno no está activo.</p>
+            <p>Debes abrir tu caja antes de registrar movimientos de dinero.</p>
+            
+            <button mat-flat-button color="primary" class="open-box-btn" (click)="irAAbrirCaja()">
+              <mat-icon>point_of_sale</mat-icon>
+              Ir a Abrir Caja
+            </button>
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <div class="lock-screen" *ngIf="checkingSession">
+        <mat-card class="lock-card">
+          <p>Verificando estado de la caja...</p>
+        </mat-card>
+      </div>
+    </ng-template>
   `,
   styles: [`
     .venta-grid {
@@ -215,88 +242,99 @@ interface ItemCarrito extends Producto {
       letter-spacing: 1px;
       text-transform: uppercase;
     }
-    .payment-select {
-      width: 100%;
-      margin-top: 20px;
-    }
-    /* Estilo para que el select en la card del total se vea bien */
-    .payment-select ::ng-deep .mat-mdc-text-field-wrapper {
-      background-color: rgba(255,255,255,0.1) !important;
-    }
-    .payment-select ::ng-deep .mat-mdc-form-field-label {
-      color: rgba(255,255,255,0.8) !important;
-    }
-    .payment-select ::ng-deep .mat-mdc-select-value {
-      color: white !important;
-    }
-    .payment-select ::ng-deep .mat-mdc-select-arrow {
-      color: white !important;
-    }
+    .payment-select { width: 100%; margin-top: 20px; }
+    .payment-select ::ng-deep .mat-mdc-text-field-wrapper { background-color: rgba(255,255,255,0.1) !important; }
+    .payment-select ::ng-deep .mat-mdc-form-field-label { color: rgba(255,255,255,0.8) !important; }
+    .payment-select ::ng-deep .mat-mdc-select-value { color: white !important; }
+    .payment-select ::ng-deep .mat-mdc-select-arrow { color: white !important; }
+    
     .search-bar { display: flex; align-items: baseline; }
     .flex-grow { flex-grow: 1; }
     .margin-left { margin-left: 15px; }
     .margin-top { margin-top: 20px; }
     .full-width { width: 100%; }
     .qty-control { display: flex; align-items: center; gap: 5px; }
-    .empty-cart {
-      padding: 40px;
-      text-align: center;
-      color: var(--dark-pink);
-      opacity: 0.5;
-    }
+    .empty-cart { padding: 40px; text-align: center; color: var(--dark-pink); opacity: 0.5; }
     .empty-cart mat-icon { font-size: 64px; width: 64px; height: 64px; }
     
-    ::ng-deep table.mat-mdc-table {
-      background: transparent !important;
-    }
-    ::ng-deep table.mat-mdc-table thead tr {
-      background-color: #fff5f8 !important;
-    }
+    ::ng-deep table.mat-mdc-table { background: transparent !important; }
+    ::ng-deep table.mat-mdc-table thead tr { background-color: #fff5f8 !important; }
     ::ng-deep th.mat-mdc-header-cell {
-      color: var(--primary-pink) !important;
-      font-weight: 700 !important;
-      text-transform: uppercase;
-      font-size: 12px;
-      letter-spacing: 1px;
+      color: var(--primary-pink) !important; font-weight: 700 !important;
+      text-transform: uppercase; font-size: 12px; letter-spacing: 1px;
     }
-    ::ng-deep td.mat-mdc-cell {
-      color: var(--dark-text) !important;
-      font-size: 15px;
-    }
-    .qty-control span {
-      font-weight: 700;
-      color: var(--primary-pink);
-      min-width: 25px;
-      text-align: center;
-    }
-    .product-option {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      gap: 15px;
-    }
+    ::ng-deep td.mat-mdc-cell { color: var(--dark-text) !important; font-size: 15px; }
+    .qty-control span { font-weight: 700; color: var(--primary-pink); min-width: 25px; text-align: center; }
+    .product-option { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; }
     .prod-name { font-weight: 600; flex: 1; }
     .prod-ref { font-family: monospace; color: var(--subtle-text); font-size: 12px; }
     .prod-price { color: var(--primary-pink); font-weight: 700; }
+
+    /* Estilos Pantalla Bloqueo */
+    .lock-screen {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 70vh;
+    }
+    .lock-card {
+      text-align: center;
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 450px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      border-top: 8px solid var(--primary-pink);
+    }
+    .lock-icon {
+      font-size: 80px;
+      width: 80px;
+      height: 80px;
+      color: #f44336;
+      margin-bottom: 20px;
+    }
+    .lock-card h2 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .lock-card p {
+      color: #666;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .open-box-btn {
+      margin-top: 30px;
+      padding: 25px 40px;
+      font-size: 18px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
   `]
 })
 export class Ventas implements OnInit {
   searchControl = new FormControl('');
   loading = false;
+  checkingSession = true;
+  
   productosFiltrados = signal<Producto[]>([]);
   carrito = signal<ItemCarrito[]>([]);
+  sesionActiva = signal<SesionTrabajo | null>(null);
   displayedColumns: string[] = ['producto', 'precio', 'cantidad', 'subtotal', 'acciones'];
 
   private productoService = inject(ProductoService);
   private ventaService = inject(VentaService);
   private metodoPagoService = inject(MetodoPagoService);
+  private authService = inject(AuthService);
+  private sesionService = inject(SesionTrabajoService);
+  private router = inject(Router);
   private snackBar = inject(MatSnackBar);
 
   metodosPago: MetodoPago[] = [];
   metodoPagoSeleccionado = 1;
 
   ngOnInit() {
+    this.verificarCajaFuerte();
+
     // Configurar búsqueda dinámica
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
@@ -315,6 +353,30 @@ export class Ventas implements OnInit {
       this.metodosPago = res;
       if (res.length > 0) this.metodoPagoSeleccionado = res[0].id;
     });
+  }
+
+  verificarCajaFuerte() {
+    const userId = this.authService.getCurrentUser()?.id;
+    if (!userId) {
+      this.checkingSession = false;
+      return;
+    }
+
+    this.sesionService.obtenerSesionActiva(userId).subscribe({
+      next: (sesion) => {
+        this.sesionActiva.set(sesion);
+        this.checkingSession = false;
+      },
+      error: () => {
+        // Caja cerrada, se queda en null
+        this.sesionActiva.set(null);
+        this.checkingSession = false;
+      }
+    });
+  }
+
+  irAAbrirCaja() {
+    this.router.navigate(['/sesiones-trabajo']);
   }
 
   onProductSelected(event: any) {
@@ -358,10 +420,16 @@ export class Ventas implements OnInit {
   }
 
   finalizarVenta() {
+    const sesion = this.sesionActiva();
+    if (!sesion) {
+      this.snackBar.open('Error: Caja cerrada.', 'Cerrar');
+      return;
+    }
+
     this.loading = true;
     
     const request = {
-      sesionId: 1,
+      sesionId: sesion.id,
       metodoPagoId: this.metodoPagoSeleccionado,
       descuento: 0,
       detalles: this.carrito().map(item => ({

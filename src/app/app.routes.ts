@@ -7,6 +7,7 @@ import { Inventarios } from './inventario/inventarios';
 import { Gastos } from './gastos/gastos';
 import { Reportes } from './reportes/reportes';
 import { Usuarios } from './usuarios/usuarios';
+import { SesionesTrabajo } from './sesiones-trabajo/sesiones-trabajo';
 import { authGuard } from './auth/auth-guard';
 
 export const routes: Routes = [
@@ -22,7 +23,8 @@ export const routes: Routes = [
       { path: 'gastos', component: Gastos },
       { path: 'reportes', component: Reportes },
       { path: 'usuarios', component: Usuarios },
-      { path: '', redirectTo: 'ventas', pathMatch: 'full' }
+      { path: 'sesiones-trabajo', component: SesionesTrabajo },
+      { path: '', redirectTo: 'sesiones-trabajo', pathMatch: 'full' }
     ]
   }
 ];

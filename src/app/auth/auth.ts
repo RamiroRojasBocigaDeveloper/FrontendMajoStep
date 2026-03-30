@@ -11,6 +11,7 @@ export interface LoginRequest {
 export interface AuthResponse {
   token: string;
   type: string;
+  id: number;
   email: string;
   nombre: string;
   rol: string;
