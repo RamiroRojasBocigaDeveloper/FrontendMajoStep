@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { CategoriaGastoService, CategoriaGasto } from '../categoria-gasto';
+import { SubcategoriaGastoService, SubcategoriaGasto } from '../subcategoria-gasto';
 
 @Component({
   selector: 'app-gasto-dialog',
@@ -31,6 +32,15 @@ import { CategoriaGastoService, CategoriaGasto } from '../categoria-gasto';
             <mat-select formControlName="categoriaGastoId">
               <mat-option *ngFor="let cat of categorias" [value]="cat.id">
                 {{cat.nombre}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="subcategorias.length > 0">
+            <mat-label>Subcategoría de Gasto</mat-label>
+            <mat-select formControlName="subcategoriaGastoId">
+              <mat-option *ngFor="let subcat of subcategorias" [value]="subcat.id">
+                {{subcat.nombre}}
               </mat-option>
             </mat-select>
           </mat-form-field>
@@ -60,19 +70,43 @@ import { CategoriaGastoService, CategoriaGasto } from '../categoria-gasto';
 export class GastoDialog implements OnInit {
   private fb = inject(FormBuilder);
   private categoriaGastoService = inject(CategoriaGastoService);
+  private subcategoriaGastoService = inject(SubcategoriaGastoService);
   dialogRef = inject(MatDialogRef<GastoDialog>);
 
   categorias: CategoriaGasto[] = [];
+  subcategorias: SubcategoriaGasto[] = [];
 
   form: FormGroup = this.fb.group({
     sesionId: [1], // TODO: Obtener sesionId real
     categoriaGastoId: ['', Validators.required],
+    subcategoriaGastoId: [null],
     monto: ['', [Validators.required, Validators.min(1)]],
     descripcion: ['', [Validators.required, Validators.maxLength(200)]]
   });
 
   ngOnInit() {
     this.categoriaGastoService.obtenerTodas().subscribe(res => this.categorias = res);
+
+    this.form.get('categoriaGastoId')?.valueChanges.subscribe(catId => {
+      // Limpiar subcategoría al cambiar categoría
+      this.form.get('subcategoriaGastoId')?.setValue(null);
+      this.form.get('subcategoriaGastoId')?.clearValidators();
+      
+      if (catId) {
+        this.subcategoriaGastoService.obtenerPorCategoria(catId).subscribe(res => {
+          this.subcategorias = res;
+          // Si hay subcategorías, la hacemos obligatoria, si no, la limpiamos.
+          if (this.subcategorias.length > 0) {
+            this.form.get('subcategoriaGastoId')?.setValidators(Validators.required);
+          } else {
+            this.form.get('subcategoriaGastoId')?.clearValidators();
+          }
+          this.form.get('subcategoriaGastoId')?.updateValueAndValidity();
+        });
+      } else {
+        this.subcategorias = [];
+      }
+    });
   }
 
   onCancel() { this.dialogRef.close(); }

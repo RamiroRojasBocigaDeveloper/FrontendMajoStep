@@ -75,6 +75,15 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef> Estado </th>
+            <td mat-cell *matCellDef="let p">
+              <span [class.status-active]="p.activo" [class.status-inactive]="!p.activo">
+                {{ p.activo ? 'Disponible' : 'Inactivo' }}
+              </span>
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="acciones">
             <th mat-header-cell *matHeaderCellDef> Acciones </th>
             <td mat-cell *matCellDef="let p">
@@ -151,7 +160,8 @@ export class Inventarios implements OnInit {
 
   productos = signal<Producto[]>([]);
   loading = false;
-  displayedColumns = ['referencia', 'nombre', 'categoria', 'precio', 'stock', 'acciones'];
+  displayedColumns = ['referencia', 'nombre', 'categoria', 'precio', 'stock', 'estado', 'acciones'];
+
 
   ngOnInit() {
     this.cargarProductos();
