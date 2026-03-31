@@ -6,15 +6,17 @@ export interface Gasto {
   id?: number;
   descripcion: string;
   monto: number;
-  fecha: string;
-  categoriaNombre?: string;
-  nombreUsuario?: string;
+  createdAt: string; 
+  categoriaGastoNombre?: string;
+  subcategoriaGastoNombre?: string;
+  sesionId?: number;
 }
 
 export interface GastoRequest {
+  categoriaGastoId: number;
+  subcategoriaGastoId?: number;
   descripcion: string;
   monto: number;
-  subcategoriaId: number;
   sesionId: number;
 }
 

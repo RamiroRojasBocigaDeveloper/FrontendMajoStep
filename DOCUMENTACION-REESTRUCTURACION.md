@@ -11,15 +11,16 @@ Cada módulo de entidad (ej. `categorias`) debe contener:
 - `[plural].ts, .html, .css`: El componente principal (tabla/vista). Debe ser **Standalone Component**. La clase no lleva el sufijo `Component`.
 - `[singular]-dialog/`: Carpeta con el modal para crear/editar registros (`.ts`, `.html`, `.css`).
 
-## Progreso Actual
-
-Se han completado los pasos 1 a 3 del plan de migración:
-
-- ✅ **Auth**: Configurado en `app/auth/` (contiene `auth.ts`, `auth-guard.ts`, `auth-interceptor.ts`).
-- ✅ **Login**: Configurado en `app/login/` (`login.ts`, `.html`, `.css`).
-- ✅ **Categorías**: Configurado en `app/categorias/` (`categoria.ts`, `categorias.ts/html/css`, `categoria-dialog/`).
-  - *Nota:* Se eliminó el campo local `descripcion` ya que no es manejado por el backend real.
-- ✅ **Limpieza**: Se eliminaron las carpetas inyectadas por la arquitectura antigua (`core/guards`, `core/interceptors`, `core/services/auth.service.ts`, `features/auth`, `features/inventario/categorias`).
+- ✅ **Auth**: Configurado en `app/auth/`.
+- ✅ **Login**: Configurado en `app/login/`.
+- ✅ **Categorías**: Configurado en `app/categorias/`.
+- ✅ **Usuarios**: Configurado en `app/usuarios/` (API `/api/usuarios`).
+- ✅ **Gastos**: Configurado en `app/gastos/` (API `/api/gastos`).
+- ✅ **Inventario**: Configurado en `app/inventario/` (API `/api/inventario`).
+- ✅ **Sesiones Trabajo**: Configurado en `app/sesiones-trabajo/` (API `/api/sesiones-trabajo`).
+- ✅ **Reportes**: Configurado en `app/reportes/` (API `/api/reportes`).
+- 🟡 **Ventas (TPV)**: Migrado a `app/ventas/`, pero pendiente de limpieza/refactorización.
+- 🟡 **Productos**: Servicio y Diálogo listos en `app/productos/`. Pendiente componente de lista (`productos.ts`).
 
 ## Pendientes Módulos Antiguos por Migrar
 
@@ -31,20 +32,12 @@ Los siguientes módulos del frontend todavía usan la estructura antigua o está
 
 *Importante: `app.routes.ts` y los componentes viejos ya fueron actualizados para importar desde las nuevas ubicaciones (como `app/auth/auth`), por lo que el proyecto compila correctamente en su estado actual.*
 
-## Módulos Nuevos Pendientes (Basados en el Backend)
+## Módulos y Tareas Pendientes
 
-El backend expone 10 módulos que aún necesitan ser contruidos en el frontend:
-
-1. **Productos** (`/api/productos`) -> `app/productos/`
-2. **Usuarios** (`/api/usuarios`) -> `app/usuarios/`
-3. **Gastos** (`/api/gastos`) -> `app/gastos/`
-4. **Cat. Gasto** (`/api/categorias-gasto`) -> `app/categorias-gasto/`
-5. **Subcat. Gasto** (`/api/subcategorias-gasto`) -> `app/subcategorias-gasto/`
-6. **Métodos Pago** (`/api/metodos-pago`) -> `app/metodos-pago/`
-7. **Mov. Inventario** (`/api/movimientos-inventario`) -> `app/movimientos-inventario/`
-8. **Reportes** (`/api/reportes`) -> `app/reportes/`
-9. **Sesión Trabajo** (`/api/sesiones-trabajo`) -> `app/sesiones-trabajo/`
-10. **Sueldos** (`/api/sueldos-pagados`) -> `app/sueldos-pagados/`
+1. **Productos** (`/api/productos`): Crear tabla principal en `app/productos/productos.ts`.
+2. **Sueldos** (`/api/sueldos-pagados`): Pendiente creación.
+3. **Subcat. Gasto** (`/api/subcategorias-gasto`): Pendiente integración en módulo de gastos.
+4. **Menú Principal**: Extraer de `app/layout/layout.ts` y mover a `app/menu-principal/`.
 
 ### Notas sobre los Módulos Futuros
 - `VentaRequest`: Se actualizó el envío para que solo solicite `{ sesionId, metodoPagoId, descuento, detalles }` según el backend.

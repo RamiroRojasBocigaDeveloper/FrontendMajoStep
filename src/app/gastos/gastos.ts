@@ -8,6 +8,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { GastoService, Gasto } from './gasto';
 import { GastoDialog } from './gasto-dialog/gasto-dialog';
+import { AuthService } from '../auth/auth';
 
 @Component({
   selector: 'app-gastos',
@@ -38,7 +39,7 @@ import { GastoDialog } from './gasto-dialog/gasto-dialog';
         <table mat-table [dataSource]="gastos()" class="full-width">
           <ng-container matColumnDef="fecha">
             <th mat-header-cell *matHeaderCellDef> Fecha </th>
-            <td mat-cell *matCellDef="let g"> {{g.fecha | date:'short'}} </td>
+            <td mat-cell *matCellDef="let g"> {{g.createdAt | date:'short'}} </td>
           </ng-container>
 
           <ng-container matColumnDef="descripcion">
@@ -48,7 +49,10 @@ import { GastoDialog } from './gasto-dialog/gasto-dialog';
 
           <ng-container matColumnDef="categoria">
             <th mat-header-cell *matHeaderCellDef> Categoría </th>
-            <td mat-cell *matCellDef="let g"> {{g.categoriaNombre || 'General'}} </td>
+            <td mat-cell *matCellDef="let g"> 
+              {{g.categoriaGastoNombre || 'General'}} 
+              <span *ngIf="g.subcategoriaGastoNombre" class="sub-badge">({{g.subcategoriaGastoNombre}})</span>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="monto">
@@ -66,7 +70,7 @@ import { GastoDialog } from './gasto-dialog/gasto-dialog';
           <ng-container matColumnDef="acciones">
             <th mat-header-cell *matHeaderCellDef> - </th>
             <td mat-cell *matCellDef="let g">
-              <button mat-icon-button color="warn" (click)="eliminar(g.id)">
+              <button mat-icon-button color="warn" (click)="eliminar(g.id)" *ngIf="isAdmin()">
                 <mat-icon>delete_outline</mat-icon>
               </button>
             </td>
@@ -125,19 +129,33 @@ import { GastoDialog } from './gasto-dialog/gasto-dialog';
       color: var(--primary-pink) !important;
       font-weight: 700 !important;
     }
+    .sub-badge {
+      font-size: 0.8em;
+      color: var(--primary-color);
+      margin-left: 4px;
+      font-weight: 500;
+    }
   `]
 })
 export class Gastos implements OnInit {
   private gastoService = inject(GastoService);
+  private authService = inject(AuthService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
   gastos = signal<Gasto[]>([]);
   loading = false;
-  displayedColumns = ['fecha', 'descripcion', 'categoria', 'monto', 'usuario', 'acciones'];
+  displayedColumns = ['fecha', 'descripcion', 'categoria', 'monto', 'usuario'];
 
   ngOnInit() {
+    if (this.isAdmin()) {
+      this.displayedColumns.push('acciones');
+    }
     this.cargarGastos();
+  }
+
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
   }
 
   cargarGastos() {

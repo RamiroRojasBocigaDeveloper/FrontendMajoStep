@@ -61,6 +61,16 @@ export class AuthService {
     return !!user && user.rol?.toUpperCase() === 'ADMINISTRADOR';
   }
 
+  isVendedor(): boolean {
+    const user = this.getCurrentUser();
+    return !!user && user.rol?.toUpperCase() === 'VENDEDOR';
+  }
+
+  isAdminOrSuperior(): boolean {
+    // En este sistema, ADMINISTRADOR es el nivel más alto.
+    return this.isAdmin();
+  }
+
   isAuthenticated(): boolean {
     return !!this.getToken();
   }

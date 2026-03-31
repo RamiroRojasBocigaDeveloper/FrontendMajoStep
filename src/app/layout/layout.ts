@@ -113,11 +113,12 @@ export class ConfirmLogoutDialog {
             <mat-icon matListItemIcon>inventory_2</mat-icon>
             <span matListItemTitle>Inventario</span>
           </a>
+
           <a mat-list-item routerLink="/categorias" routerLinkActive="active-link">
             <mat-icon matListItemIcon>category</mat-icon>
             <span matListItemTitle>Categorías</span>
           </a>
-          <a mat-list-item routerLink="/gastos" routerLinkActive="active-link" *ngIf="isAdmin()">
+          <a mat-list-item routerLink="/gastos" routerLinkActive="active-link" *ngIf="isAdmin() || isVendedor()">
             <mat-icon matListItemIcon>payments</mat-icon>
             <span matListItemTitle>Gastos</span>
           </a>
@@ -228,6 +229,17 @@ export class ConfirmLogoutDialog {
     mat-nav-list a:hover mat-icon {
       color: var(--primary-pink) !important;
     }
+    /* Estilo para el link activo cuando se pasa el mouse (evita que desaparezca el texto) */
+    mat-nav-list a.active-link:hover {
+      background-color: var(--primary-pink) !important;
+      cursor: default;
+      transform: none;
+    }
+    mat-nav-list a.active-link:hover .mdc-list-item__primary-text,
+    mat-nav-list a.active-link:hover span[matListItemTitle],
+    mat-nav-list a.active-link:hover mat-icon {
+      color: #e0e0e0 !important; /* Gris claro para indicar que ya está seleccionado */
+    }
     mat-icon[matListItemIcon] {
       color: var(--subtle-text);
       margin-right: 16px !important;
@@ -242,6 +254,10 @@ export class Layout {
 
   isAdmin(): boolean {
     return this.authService.isAdmin();
+  }
+
+  isVendedor(): boolean {
+    return this.authService.isVendedor();
   }
 
   getNombreUsuario(): string {

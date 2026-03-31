@@ -267,6 +267,31 @@ mat-card.total-card,
   font-weight: 800 !important;
 }
 
+/* FIX: Fondos Oscuros en Paneles Desplegables (Autocomplete y Select) */
+.mat-mdc-autocomplete-panel,
+.mat-mdc-select-panel,
+.mdc-menu-surface.mat-mdc-select-panel,
+.cdk-overlay-pane .mdc-menu-surface {
+  background-color: var(--bg-card) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--luxury-shadow) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.mat-mdc-option .mdc-list-item__primary-text {
+  color: var(--dark-text) !important;
+}
+
+.mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.mat-mdc-option.mdc-list-item--selected:not(.mat-mdc-option-multiple):not(.mdc-list-item--disabled) {
+  background-color: var(--light-pink) !important;
+}
+
+.mat-mdc-option.mdc-list-item--selected .mdc-list-item__primary-text {
+  color: var(--primary-pink) !important;
+  font-weight: 700 !important;
+}
+
 /* Scrollbar personalizada */
 ::-webkit-scrollbar {
   width: 8px;

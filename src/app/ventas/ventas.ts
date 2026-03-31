@@ -145,14 +145,15 @@ interface ItemCarrito extends Producto {
               <span>{{ carrito().length }} productos en el carrito</span>
             </div>
 
+            <h3 class="payment-title">Seleccionar Método de Pago</h3>
             <mat-form-field appearance="outline" class="payment-select">
-              <mat-label>Método de Pago</mat-label>
               <mat-select [(ngModel)]="metodoPagoSeleccionado">
                 <mat-option *ngFor="let mp of metodosPago" [value]="mp.id">
-                  {{mp.nombre}}
+                  <span class="dark-option-text">{{mp.nombre}}</span>
                 </mat-option>
               </mat-select>
             </mat-form-field>
+
             
             <button mat-raised-button class="checkout-btn" 
                     [disabled]="carrito().length === 0 || loading || !metodoPagoSeleccionado"
@@ -160,17 +161,6 @@ interface ItemCarrito extends Producto {
               <mat-icon>check_circle</mat-icon>
               {{ loading ? 'Procesando...' : 'FINALIZAR VENTA' }}
             </button>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="pink-card margin-top">
-          <mat-card-header>
-            <mat-card-title>Atajos del Cajero</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <p>F2: Buscar Producto</p>
-            <p>F8: Finalizar Venta</p>
-            <p>ESC: Limpiar Carrito</p>
           </mat-card-content>
         </mat-card>
       </div>
@@ -215,11 +205,11 @@ interface ItemCarrito extends Producto {
     .total-card {
       background: var(--vibrant-gradient);
       color: white;
-      border-radius: 24px;
-      padding: 15px;
+      border-radius: 36px;
+      padding: 24px;
       text-align: center;
-      box-shadow: 0 15px 40px rgba(216, 27, 96, 0.25);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 15px 40px rgba(216, 27, 96, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
     .total-row {
       display: flex;
@@ -242,11 +232,26 @@ interface ItemCarrito extends Producto {
       letter-spacing: 1px;
       text-transform: uppercase;
     }
-    .payment-select { width: 100%; margin-top: 20px; }
-    .payment-select ::ng-deep .mat-mdc-text-field-wrapper { background-color: rgba(255,255,255,0.1) !important; }
-    .payment-select ::ng-deep .mat-mdc-form-field-label { color: rgba(255,255,255,0.8) !important; }
-    .payment-select ::ng-deep .mat-mdc-select-value { color: white !important; }
-    .payment-select ::ng-deep .mat-mdc-select-arrow { color: white !important; }
+    .payment-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: white;
+      text-align: left;
+      margin-top: 25px;
+      margin-bottom: 8px;
+      padding-left: 10px;
+    }
+    .payment-select { width: 100%; margin-top: 0; }
+    .payment-select ::ng-deep .mat-mdc-text-field-wrapper { 
+      background-color: white !important; 
+      border-radius: 20px !important; 
+      border: none !important;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+    }
+    .payment-select ::ng-deep .mat-mdc-select-value-text { color: var(--primary-pink) !important; font-weight: 800 !important; font-size: 16px; }
+    .payment-select ::ng-deep .mat-mdc-select-arrow { color: var(--primary-pink) !important; }
+    ::ng-deep .dark-option-text { color: #333333 !important; font-weight: 600; }
+
     
     .search-bar { display: flex; align-items: baseline; }
     .flex-grow { flex-grow: 1; }
@@ -266,7 +271,7 @@ interface ItemCarrito extends Producto {
     ::ng-deep td.mat-mdc-cell { color: var(--dark-text) !important; font-size: 15px; }
     .qty-control span { font-weight: 700; color: var(--primary-pink); min-width: 25px; text-align: center; }
     .product-option { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; }
-    .prod-name { font-weight: 600; flex: 1; }
+    .prod-name { font-weight: 600; flex: 1; color: #333333 !important; }
     .prod-ref { font-family: monospace; color: var(--subtle-text); font-size: 12px; }
     .prod-price { color: var(--primary-pink); font-weight: 700; }
 
@@ -389,14 +394,23 @@ export class Ventas implements OnInit {
   agregarAlCarrito(producto: Producto) {
     const actual = this.carrito();
     const index = actual.findIndex(p => p.id === producto.id);
+    let nuevaCant = 1;
     
     if (index >= 0) {
       actual[index].cantidadVenta += 1;
+      nuevaCant = actual[index].cantidadVenta;
       this.carrito.set([...actual]);
     } else {
       this.carrito.set([...actual, { ...producto, cantidadVenta: 1 }]);
     }
-    this.snackBar.open(`Agregado: ${producto.nombre}`, 'OK', { duration: 2000 });
+    
+    if (nuevaCant >= producto.stockActual && producto.stockActual > 0) {
+      this.snackBar.open(`⚠️ Agregado: ${producto.nombre}. ¡Solo queda ${producto.stockActual} en stock!`, 'Aceptar', { duration: 4000 });
+    } else if (producto.stockActual <= 0) {
+      this.snackBar.open(`⚠️ ${producto.nombre} registrado, pero NO hay stock disponible.`, 'Aceptar', { duration: 4000 });
+    } else {
+      this.snackBar.open(`Agregado: ${producto.nombre}`, 'OK', { duration: 2000 });
+    }
   }
 
   modificarCantidad(item: ItemCarrito, cambio: number) {
@@ -407,6 +421,10 @@ export class Ventas implements OnInit {
       if (nuevaCant > 0) {
         actual[index].cantidadVenta = nuevaCant;
         this.carrito.set([...actual]);
+        
+        if (nuevaCant >= actual[index].stockActual && cambio > 0) {
+          this.snackBar.open(`⚠️ ${actual[index].nombre} llegó al límite del stock actual (${actual[index].stockActual}).`, 'OK', { duration: 3000 });
+        }
       }
     }
   }
@@ -438,9 +456,15 @@ export class Ventas implements OnInit {
       }))
     };
 
+    const agotados = this.carrito().filter(p => p.cantidadVenta >= p.stockActual).map(p => p.nombre);
+
     this.ventaService.procesarVenta(request).subscribe({
       next: () => {
-        this.snackBar.open('¡Venta completada con éxito!', 'OK', { duration: 3000 });
+        if (agotados.length > 0) {
+          this.snackBar.open(`¡Venta completada! ⚠️ Poner en reposición: ${agotados.join(', ')}`, 'Cerrar', { duration: 8000 });
+        } else {
+          this.snackBar.open('¡Venta completada con éxito!', 'OK', { duration: 3000 });
+        }
         this.carrito.set([]);
         this.loading = false;
       },
