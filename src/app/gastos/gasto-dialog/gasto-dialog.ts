@@ -7,12 +7,18 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { CategoriaGastoService, CategoriaGasto } from '../categoria-gasto';
 import { SubcategoriaGastoService, SubcategoriaGasto } from '../subcategoria-gasto';
+import { AuthService } from '../../auth/auth';
+import { MatIconModule } from '@angular/material/icon';
+import { provideNativeDateAdapter } from '@angular/material/core';
 
 @Component({
   selector: 'app-gasto-dialog',
   standalone: true,
+  providers: [provideNativeDateAdapter()],
   imports: [
     CommonModule,
     FormsModule,
@@ -21,7 +27,10 @@ import { SubcategoriaGastoService, SubcategoriaGasto } from '../subcategoria-gas
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatButtonModule
+    MatButtonModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatIconModule
   ],
   template: `
     <h2 mat-dialog-title>Registrar Nuevo Gasto</h2>
@@ -56,6 +65,13 @@ import { SubcategoriaGastoService, SubcategoriaGasto } from '../subcategoria-gas
             <mat-label>Descripción / Detalle</mat-label>
             <textarea matInput formControlName="descripcion" rows="3"></textarea>
           </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="isAdmin()" style="width: 100%;">
+            <mat-label>Fecha Histórica</mat-label>
+            <input matInput [matDatepicker]="pickerGasto" formControlName="fechaHistorica">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerGasto"></mat-datepicker-toggle>
+            <mat-datepicker #pickerGasto panelClass="pink-datepicker"></mat-datepicker>
+          </mat-form-field>
         </div>
       </form>
     </mat-dialog-content>
@@ -66,12 +82,32 @@ import { SubcategoriaGastoService, SubcategoriaGasto } from '../subcategoria-gas
   `,
   styles: [`
     .form-grid { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; }
+    ::ng-deep mat-datepicker-toggle,
+    ::ng-deep .mat-datepicker-toggle,
+    ::ng-deep mat-datepicker-toggle button,
+    ::ng-deep mat-datepicker-toggle mat-icon,
+    ::ng-deep .mat-datepicker-toggle-default-icon { color: #C2185B !important; }
+    
+    ::ng-deep .pink-datepicker { z-index: 10000 !important; background: #ffffff !important; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.2) !important; }
+    ::ng-deep .pink-datepicker .mat-calendar-body-cell-content { color: #333333 !important; font-weight: 500; }
+    ::ng-deep .pink-datepicker .mat-calendar-table-header { color: #C2185B !important; font-weight: bold; }
+    ::ng-deep .pink-datepicker .mat-calendar-body-selected { background-color: #e91e63 !important; color: white !important; font-weight: bold; }
+    ::ng-deep .pink-datepicker .mat-calendar-body-today:not(.mat-calendar-body-selected) { border-color: #e91e63 !important; }
+    ::ng-deep .pink-datepicker .mat-calendar-header { color: #C2185B !important; }
+    ::ng-deep .pink-datepicker .mat-calendar-period-button span, 
+    ::ng-deep .pink-datepicker .mat-calendar-period-button { color: #C2185B !important; font-weight: 800; }
+    ::ng-deep .pink-datepicker .mat-calendar-body-label { color: #C2185B !important; font-weight: 700; }
+    ::ng-deep .pink-datepicker .mat-calendar-controls { margin-top: 5px; }
+    ::ng-deep .pink-datepicker .mat-calendar-arrow { fill: #C2185B !important; }
+    ::ng-deep .pink-datepicker .mat-icon-button { color: #C2185B !important; }
+    ::ng-deep .pink-datepicker .mat-calendar-previous-button, ::ng-deep .pink-datepicker .mat-calendar-next-button { color: #C2185B !important; }
   `]
 })
 export class GastoDialog implements OnInit {
   private fb = inject(FormBuilder);
   private categoriaGastoService = inject(CategoriaGastoService);
   private subcategoriaGastoService = inject(SubcategoriaGastoService);
+  private authService = inject(AuthService);
   dialogRef = inject(MatDialogRef<GastoDialog>);
   data = inject(MAT_DIALOG_DATA);
 
@@ -84,8 +120,13 @@ export class GastoDialog implements OnInit {
     categoriaGastoId: ['', Validators.required],
     subcategoriaGastoId: [null],
     monto: ['', [Validators.required, Validators.min(1)]],
-    descripcion: ['', [Validators.required, Validators.maxLength(200)]]
+    descripcion: ['', [Validators.required, Validators.maxLength(200)]],
+    fechaHistorica: [null]
   });
+
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
 
   ngOnInit() {
     this.categoriaGastoService.obtenerTodas().subscribe(res => this.categorias = res);
@@ -116,7 +157,17 @@ export class GastoDialog implements OnInit {
 
   onSave() {
     if (this.form.valid) {
-      this.dialogRef.close(this.form.value);
+      const payload = { ...this.form.value };
+      if (payload.fechaHistorica) {
+        const d = new Date(payload.fechaHistorica);
+        const yr = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        payload.fechaHistorica = `${yr}-${mo}-${da}`;
+      } else {
+        delete payload.fechaHistorica;
+      }
+      this.dialogRef.close(payload);
     }
   }
 }

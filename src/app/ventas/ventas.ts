@@ -13,6 +13,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDialogModule } from '@angular/material/dialog';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { Router } from '@angular/router';
 
 import { ProductoService, Producto } from '../productos/producto';
@@ -41,7 +43,9 @@ interface ItemCarrito extends Producto {
     MatDividerModule,
     MatSelectModule,
     MatDialogModule,
-    MatAutocompleteModule
+    MatAutocompleteModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   template: `
     <div class="venta-grid" *ngIf="sesionActiva(); else cajaCerrada">
@@ -161,6 +165,16 @@ interface ItemCarrito extends Producto {
               </mat-select>
             </mat-form-field>
 
+            <div *ngIf="isAdmin()" style="margin-top: 15px; margin-bottom: 15px;">
+              <h3 class="payment-title" style="color: #333333;">Fecha Histórica</h3>
+              <mat-form-field appearance="outline" style="width: 100%;">
+                <mat-label>Seleccionar Fecha</mat-label>
+                <input matInput [matDatepicker]="pickerVenta" [formControl]="fechaHistorica">
+                <mat-datepicker-toggle matIconSuffix [for]="pickerVenta"></mat-datepicker-toggle>
+                <mat-datepicker #pickerVenta panelClass="pink-datepicker"></mat-datepicker>
+              </mat-form-field>
+            </div>
+
             
             <button mat-raised-button class="checkout-btn" 
                     [disabled]="carrito().length === 0 || loading || !metodoPagoSeleccionado"
@@ -210,13 +224,13 @@ interface ItemCarrito extends Producto {
       box-shadow: var(--luxury-shadow);
     }
     .total-card {
-      background: var(--vibrant-gradient);
-      color: white;
+      background: #ffffff;
+      color: #333333;
       border-radius: 36px;
       padding: 24px;
       text-align: center;
-      box-shadow: 0 15px 40px rgba(216, 27, 96, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e0e0e0;
     }
     .total-row {
       display: flex;
@@ -224,40 +238,51 @@ interface ItemCarrito extends Producto {
       padding: 25px 0;
     }
     .total-row .label { font-size: 14px; opacity: 0.9; }
-    .total-row .value { font-size: 48px; font-weight: 800; }
+    .total-row .value { font-size: 48px; font-weight: 800; color: var(--primary-pink); }
     
     .checkout-btn {
       width: 100%;
       height: 65px;
       margin-top: 25px;
-      background-color: white !important;
-      color: var(--primary-pink) !important;
+      background: var(--primary-pink) !important;
+      color: white !important;
       font-weight: 800;
       font-size: 20px;
       border-radius: 18px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 15px rgba(216, 27, 96, 0.3);
       letter-spacing: 1px;
       text-transform: uppercase;
     }
     .payment-title {
       font-size: 16px;
       font-weight: 700;
-      color: white;
+      color: #333333;
       text-align: left;
       margin-top: 25px;
       margin-bottom: 8px;
       padding-left: 10px;
     }
     .payment-select { width: 100%; margin-top: 0; }
-    .payment-select ::ng-deep .mat-mdc-text-field-wrapper { 
-      background-color: white !important; 
-      border-radius: 20px !important; 
-      border: none !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
-    }
-    .payment-select ::ng-deep .mat-mdc-select-value-text { color: var(--primary-pink) !important; font-weight: 800 !important; font-size: 16px; }
-    .payment-select ::ng-deep .mat-mdc-select-arrow { color: var(--primary-pink) !important; }
     ::ng-deep .dark-option-text { color: #333333 !important; font-weight: 600; }
+    ::ng-deep mat-datepicker-toggle,
+    ::ng-deep .mat-datepicker-toggle,
+    ::ng-deep mat-datepicker-toggle button,
+    ::ng-deep mat-datepicker-toggle mat-icon,
+    ::ng-deep .mat-datepicker-toggle-default-icon { color: var(--primary-pink) !important; }
+
+    ::ng-deep .pink-datepicker { background: #ffffff !important; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.2) !important; }
+    ::ng-deep .pink-datepicker .mat-calendar-body-cell-content { color: #333333 !important; font-weight: 500; }
+    ::ng-deep .pink-datepicker .mat-calendar-table-header { color: #C2185B !important; font-weight: bold; }
+    ::ng-deep .pink-datepicker .mat-calendar-body-selected { background-color: #e91e63 !important; color: white !important; font-weight: bold; }
+    ::ng-deep .pink-datepicker .mat-calendar-body-today:not(.mat-calendar-body-selected) { border-color: #e91e63 !important; }
+    ::ng-deep .pink-datepicker .mat-calendar-header { color: #C2185B !important; }
+    ::ng-deep .pink-datepicker .mat-calendar-period-button span, 
+    ::ng-deep .pink-datepicker .mat-calendar-period-button { color: #C2185B !important; font-weight: 800; }
+    ::ng-deep .pink-datepicker .mat-calendar-body-label { color: #C2185B !important; font-weight: 700; }
+    ::ng-deep .pink-datepicker .mat-calendar-controls { margin-top: 5px; }
+    ::ng-deep .pink-datepicker .mat-calendar-arrow { fill: #C2185B !important; }
+    ::ng-deep .pink-datepicker .mat-icon-button { color: #C2185B !important; }
+    ::ng-deep .pink-datepicker .mat-calendar-previous-button, ::ng-deep .pink-datepicker .mat-calendar-next-button { color: #C2185B !important; }
 
     
     .search-bar { display: flex; align-items: baseline; }
@@ -330,6 +355,7 @@ interface ItemCarrito extends Producto {
 })
 export class Ventas implements OnInit {
   searchControl = new FormControl('');
+  fechaHistorica = new FormControl<Date | null>(null);
   loading = false;
   checkingSession = true;
   
@@ -348,6 +374,10 @@ export class Ventas implements OnInit {
 
   metodosPago: MetodoPago[] = [];
   metodoPagoSeleccionado = 1;
+
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
 
   ngOnInit() {
     this.verificarCajaFuerte();
@@ -477,7 +507,16 @@ export class Ventas implements OnInit {
 
     this.loading = true;
     
-    const request = {
+    let fhStr = undefined;
+    if (this.fechaHistorica.value) {
+      const d = new Date(this.fechaHistorica.value);
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      fhStr = `${yr}-${mo}-${da}`;
+    }
+
+    const request: any = {
       sesionId: sesion.id,
       metodoPagoId: this.metodoPagoSeleccionado,
       descuento: 0,
@@ -486,6 +525,10 @@ export class Ventas implements OnInit {
         cantidad: item.cantidadVenta
       }))
     };
+
+    if (fhStr) {
+      request.fechaHistorica = fhStr;
+    }
 
     const agotados = this.carrito().filter(p => p.cantidadVenta >= p.stockActual).map(p => p.nombre);
 
