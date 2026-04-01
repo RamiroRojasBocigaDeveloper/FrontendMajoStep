@@ -73,7 +73,7 @@ import { finalize } from 'rxjs';
             <ng-container matColumnDef="estado">
               <th mat-header-cell *matHeaderCellDef> Estado </th>
               <td mat-cell *matCellDef="let s"> 
-                <span class="badge" [class.badge-active]="s.estado === 'ACTIVA'">{{ s.estado }}</span>
+                <span class="badge" [class.badge-active]="s.estado === 'ABIERTA'">{{ s.estado }}</span>
               </td>
             </ng-container>
 
@@ -183,7 +183,8 @@ export class SesionesTrabajo implements OnInit {
         this.cargarHistorial();
       },
       error: (err) => {
-        this.snackBar.open('Error al abrir caja: ' + (err.error?.message || err.message), 'Cerrar', { duration: 5000 });
+        const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
+        this.snackBar.open('Error al abrir caja: ' + errorMsg, 'Cerrar', { duration: 5000 });
         this.loading.set(false);
       }
     });
@@ -201,7 +202,8 @@ export class SesionesTrabajo implements OnInit {
         this.cargarDatos();
       },
       error: (err) => {
-        this.snackBar.open('Error al cerrar caja: ' + (err.error?.message || err.message), 'Cerrar', { duration: 5000 });
+        const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
+        this.snackBar.open('Error al cerrar caja: ' + errorMsg, 'Cerrar', { duration: 5000 });
         this.loading.set(false);
       }
     });

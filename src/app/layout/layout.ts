@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../auth/auth';
 import { MatDialogModule, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-confirm-logout-dialog',
@@ -91,7 +92,8 @@ export class ConfirmLogoutDialog {
     MatListModule,
     MatIconModule,
     MatButtonModule,
-    MatDialogModule
+    MatDialogModule,
+    MatSnackBarModule
   ],
   template: `
     <mat-sidenav-container class="sidenav-container">
@@ -251,6 +253,7 @@ export class Layout {
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private sesionService = inject(SesionTrabajoService);
+  private snackBar = inject(MatSnackBar);
 
   isAdmin(): boolean {
     return this.authService.isAdmin();
@@ -284,12 +287,28 @@ export class Layout {
 
           dialogRef.afterClosed().subscribe(result => {
             if (result === 'CERRAR_CAJA') {
-              // Cerramos caja y salimos
+              // Cerramos caja y salimos con feedback
+              const snackRef = this.snackBar.open('Finalizando sesión y cerrando caja...', undefined, { duration: 0 });
+              
               this.sesionService.cerrarSesion(sesion.id).subscribe({
-                next: () => this.ejecutarLogout(),
-                error: (err) => {
+                next: () => {
+                  snackRef.dismiss();
+                  this.snackBar.open('Caja cerrada con éxito. ¡Hasta pronto!', 'Cerrar', { duration: 2000 });
+                  this.ejecutarLogout();
+                },
+                error: (err: any) => {
                   console.error('Error cerrando caja:', err);
-                  this.ejecutarLogout(); // Salimos igual, aunque haya error, para no dejarlo atrapado
+                  snackRef.dismiss();
+                  
+                  let serverMessage = 'Error desconocido';
+                  if (err.error && typeof err.error === 'string') {
+                    serverMessage = err.error;
+                  } else if (err.message) {
+                    serverMessage = err.message;
+                  }
+
+                  this.snackBar.open(`Error al cerrar caja: ${serverMessage}. Cerrando sesión por seguridad.`, 'Descubierto', { duration: 6000 });
+                  this.ejecutarLogout();
                 }
               });
             } else if (result === 'SOLO_SALIR') {

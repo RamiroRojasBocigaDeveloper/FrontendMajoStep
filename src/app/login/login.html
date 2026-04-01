@@ -20,6 +20,8 @@
           <mat-label>Correo Electrónico</mat-label>
           <input matInput formControlName="email" type="email" placeholder="ejemplo@correo.com">
           <mat-icon matPrefix>email</mat-icon>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('required')">El correo es obligatorio</mat-error>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('email')">Formato de correo inválido</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
@@ -29,6 +31,8 @@
           <button mat-icon-button matSuffix (click)="hide = !hide" type="button">
             <mat-icon>{{hide ? 'visibility_off' : 'visibility'}}</mat-icon>
           </button>
+          <mat-error *ngIf="loginForm.get('password')?.hasError('required')">La contraseña es obligatoria</mat-error>
+          <mat-error *ngIf="loginForm.get('password')?.hasError('minlength')">Mínimo 6 caracteres</mat-error>
         </mat-form-field>
 
         <button mat-flat-button class="login-button full-width" [disabled]="loginForm.invalid || loading">

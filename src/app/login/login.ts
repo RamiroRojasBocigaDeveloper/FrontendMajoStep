@@ -56,19 +56,28 @@ export class Login {
       
       this.authService.login(this.loginForm.value).subscribe({
         next: (response) => {
+          console.log('Inicio de sesión exitoso para:', response.email);
           this.loading = false;
-          this.snackBar.open('¡Bienvenido! ' + response.nombre, 'Cerrar', { duration: 3000 });
+          this.snackBar.open('¡Bienvenido! ' + response.nombre, 'Cerrar', { 
+            duration: 3000,
+            panelClass: ['success-snackbar'] 
+          });
           this.router.navigate(['/']);
         },
         error: (err) => {
           console.error('Error de autenticación observado:', err);
           this.loading = false;
-          this.errorMessage.set('Credenciales incorrectas. Por favor, verifica tu correo y contraseña.');
-          this.snackBar.open('Error: No se pudo iniciar sesión', 'Cerrar', { 
-            duration: 5000,
+          
+          let message = 'Credenciales incorrectas. Por favor, verifica tu correo y contraseña.';
+          if (err.status === 0) message = 'No se pudo conectar con el servidor. Verifica tu conexión.';
+          if (err.status === 500) message = 'Error interno del servidor. Inténtalo más tarde.';
+          
+          this.errorMessage.set(message);
+          this.snackBar.open('Error: ' + message, 'Cerrar', { 
+            duration: 6000,
             panelClass: ['error-snackbar']
           });
-          this.cdr.detectChanges(); // Forzar actualización de UI
+          this.cdr.detectChanges(); // Asegurar que el Signal actualice la vista
         }
       });
     }
