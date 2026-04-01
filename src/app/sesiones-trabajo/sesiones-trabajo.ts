@@ -5,9 +5,95 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
-import { SesionTrabajoService, SesionTrabajo } from './sesion-trabajo';
+import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { SesionTrabajoService, SesionTrabajo, ResumenCierre } from './sesion-trabajo';
 import { AuthService } from '../auth/auth';
 import { finalize } from 'rxjs';
+
+@Component({
+  selector: 'app-resumen-cierre-dialog',
+  standalone: true,
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule],
+  template: `
+    <div class="dialog-wrapper">
+      <div class="header-icon" [ngClass]="getResultClass()">
+        <mat-icon>{{ getIcon() }}</mat-icon>
+      </div>
+      <h2 class="dialog-title">Resumen de Cierre de Caja</h2>
+      <p class="dialog-subtitle">Verifica los totales antes de confirmar el cierre.</p>
+
+      <div class="resumen-grid">
+        <div class="resumen-item">
+          <span class="label">Total Ventas (Bruto)</span>
+          <span class="value pos">{{ data.totalVentas | currency }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="label">Total Gastos</span>
+          <span class="value neg">{{ data.totalGastos | currency }}</span>
+        </div>
+        <div class="divider"></div>
+        <div class="resumen-item highlight" [ngClass]="getResultClass()">
+          <span class="label">Saldo Esperado (Caja)</span>
+          <span class="value">{{ data.saldoNeto | currency }}</span>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button mat-button class="btn-cancel" (click)="dialogRef.close(false)">Cancelar</button>
+        <button mat-flat-button class="btn-confirm" color="warn" (click)="dialogRef.close(true)">Cerrar Caja</button>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .dialog-wrapper { padding: 24px; text-align: center; }
+    .header-icon { display: flex; justify-content: center; align-items: center; width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 16px; font-size: 2rem; }
+    .header-icon mat-icon { font-size: 36px; width: 36px; height: 36px; }
+    .dialog-title { font-size: 1.5rem; font-weight: 800; color: #333; margin: 0 0 8px 0; }
+    .dialog-subtitle { color: #666; font-size: 0.95rem; margin-bottom: 24px; }
+    .resumen-grid { display: flex; flex-direction: column; gap: 12px; text-align: left; background: #fafafa; padding: 16px; border-radius: 12px; border: 1px solid #eee; margin-bottom: 24px; }
+    .resumen-item { display: flex; justify-content: space-between; align-items: center; }
+    .label { font-size: 0.95rem; color: #555; font-weight: 500; }
+    .value { font-size: 1.1rem; font-weight: 700; }
+    .pos { color: #2e7d32; }
+    .neg { color: #d32f2f; }
+    .divider { height: 1px; background: #e0e0e0; margin: 8px 0; }
+    .highlight { padding-top: 8px; }
+    .highlight .label { font-size: 1.1rem; font-weight: 700; color: #333; }
+    .highlight .value { font-size: 1.3rem; }
+    .dialog-actions { display: flex; justify-content: center; gap: 16px; }
+    .btn-cancel { color: #666; }
+    .btn-confirm { padding: 0 24px; border-radius: 8px; }
+    
+    /* Clases de colores según lógica */
+    .status-green { color: #2e7d32; background-color: #e8f5e9; }
+    .status-orange { color: #ef6c00; background-color: #fff3e0; }
+    .status-red { color: #c62828; background-color: #ffebee; }
+    
+    .highlight.status-green .value { color: #2e7d32; }
+    .highlight.status-orange .value { color: #ef6c00; }
+    .highlight.status-red .value { color: #c62828; }
+  `]
+})
+export class ResumenCierreDialog {
+  dialogRef = inject(MatDialogRef<ResumenCierreDialog>);
+  data: ResumenCierre = inject(MAT_DIALOG_DATA);
+
+  getResultClass(): string {
+    if (this.data.totalVentas === 0 || this.data.totalVentas < this.data.totalGastos) {
+      return 'status-red';
+    } else if (this.data.totalVentas === this.data.totalGastos) {
+      return 'status-orange';
+    } else {
+      return 'status-green';
+    }
+  }
+
+  getIcon(): string {
+    if (this.data.totalVentas === 0 || this.data.totalVentas < this.data.totalGastos) return 'warning';
+    if (this.data.totalVentas === this.data.totalGastos) return 'info';
+    return 'check_circle';
+  }
+}
 
 @Component({
   selector: 'app-sesiones-trabajo',
@@ -122,6 +208,7 @@ export class SesionesTrabajo implements OnInit {
   private sesionService = inject(SesionTrabajoService);
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   sesionActiva = signal<SesionTrabajo | null>(null);
   historial = signal<SesionTrabajo[]>([]);
@@ -195,7 +282,36 @@ export class SesionesTrabajo implements OnInit {
     if (!sesion) return;
 
     this.loading.set(true);
-    this.sesionService.cerrarSesion(sesion.id).subscribe({
+    
+    // 1. Obtener resumen
+    this.sesionService.obtenerResumenCierre(sesion.id).subscribe({
+      next: (resumen) => {
+        this.loading.set(false);
+        // 2. Mostrar diálogo
+        const dialogRef = this.dialog.open(ResumenCierreDialog, {
+          width: '450px',
+          disableClose: true,
+          data: resumen
+        });
+
+        // 3. Esperar confirmación
+        dialogRef.afterClosed().subscribe(confirm => {
+          if (confirm) {
+            this.ejecutarCierreReal(sesion.id);
+          }
+        });
+      },
+      error: (err) => {
+        this.loading.set(false);
+        const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
+        this.snackBar.open('Error al obtener resumen: ' + errorMsg, 'Cerrar', { duration: 5000 });
+      }
+    });
+  }
+
+  private ejecutarCierreReal(sesionId: number) {
+    this.loading.set(true);
+    this.sesionService.cerrarSesion(sesionId).subscribe({
       next: () => {
         this.snackBar.open('Caja Cerrada Exitosamente', 'OK', { duration: 3000 });
         this.sesionActiva.set(null);

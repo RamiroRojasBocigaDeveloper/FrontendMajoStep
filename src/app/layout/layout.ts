@@ -10,6 +10,7 @@ import { AuthService } from '../auth/auth';
 import { MatDialogModule, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { ResumenCierreDialog } from '../sesiones-trabajo/sesiones-trabajo';
 
 @Component({
   selector: 'app-confirm-logout-dialog',
@@ -287,28 +288,46 @@ export class Layout {
 
           dialogRef.afterClosed().subscribe(result => {
             if (result === 'CERRAR_CAJA') {
-              // Cerramos caja y salimos con feedback
-              const snackRef = this.snackBar.open('Finalizando sesión y cerrando caja...', undefined, { duration: 0 });
-              
-              this.sesionService.cerrarSesion(sesion.id).subscribe({
-                next: () => {
-                  snackRef.dismiss();
-                  this.snackBar.open('Caja cerrada con éxito. ¡Hasta pronto!', 'Cerrar', { duration: 2000 });
-                  this.ejecutarLogout();
-                },
-                error: (err: any) => {
-                  console.error('Error cerrando caja:', err);
-                  snackRef.dismiss();
-                  
-                  let serverMessage = 'Error desconocido';
-                  if (err.error && typeof err.error === 'string') {
-                    serverMessage = err.error;
-                  } else if (err.message) {
-                    serverMessage = err.message;
-                  }
+              // 1. Obtener resumen antes de cerrar
+              this.sesionService.obtenerResumenCierre(sesion.id).subscribe({
+                next: (resumen) => {
+                  const resumenRef = this.dialog.open(ResumenCierreDialog, {
+                    width: '450px',
+                    disableClose: true,
+                    data: resumen
+                  });
 
-                  this.snackBar.open(`Error al cerrar caja: ${serverMessage}. Cerrando sesión por seguridad.`, 'Descubierto', { duration: 6000 });
-                  this.ejecutarLogout();
+                  resumenRef.afterClosed().subscribe(confirm => {
+                    if (confirm) {
+                      // Cerramos caja y salimos con feedback
+                      const snackRef = this.snackBar.open('Finalizando sesión y cerrando caja...', undefined, { duration: 0 });
+                      
+                      this.sesionService.cerrarSesion(sesion.id).subscribe({
+                        next: () => {
+                          snackRef.dismiss();
+                          this.snackBar.open('Caja cerrada con éxito. ¡Hasta pronto!', 'Cerrar', { duration: 2000 });
+                          this.ejecutarLogout();
+                        },
+                        error: (err: any) => {
+                          console.error('Error cerrando caja:', err);
+                          snackRef.dismiss();
+                          
+                          let serverMessage = 'Error desconocido';
+                          if (err.error && typeof err.error === 'string') {
+                            serverMessage = err.error;
+                          } else if (err.message) {
+                            serverMessage = err.message;
+                          }
+
+                          this.snackBar.open(`Error al cerrar caja: ${serverMessage}. Cerrando sesión por seguridad.`, 'Descubierto', { duration: 6000 });
+                          this.ejecutarLogout();
+                        }
+                      });
+                    }
+                  });
+                },
+                error: (err) => {
+                  this.snackBar.open('Error al generar resumen.', 'Cerrar', {duration: 3000});
                 }
               });
             } else if (result === 'SOLO_SALIR') {

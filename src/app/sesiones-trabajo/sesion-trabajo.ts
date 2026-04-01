@@ -13,6 +13,13 @@ export interface SesionTrabajo {
   createdAt: string;
 }
 
+export interface ResumenCierre {
+  sesionId: number;
+  totalVentas: number;
+  totalGastos: number;
+  saldoNeto: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -38,5 +45,9 @@ export class SesionTrabajoService {
 
   obtenerTodas(): Observable<SesionTrabajo[]> {
     return this.http.get<SesionTrabajo[]>(this.apiUrl);
+  }
+
+  obtenerResumenCierre(sesionId: number): Observable<ResumenCierre> {
+    return this.http.get<ResumenCierre>(`${this.apiUrl}/${sesionId}/resumen`);
   }
 }

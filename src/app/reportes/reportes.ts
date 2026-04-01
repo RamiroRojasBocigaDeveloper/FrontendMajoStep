@@ -36,14 +36,18 @@ import { ReporteService, DashboardResponse } from './reporte';
           <p>Visualización avanzada de rentabilidad y rendimiento</p>
         </div>
         <div class="date-filter-group">
-          <mat-form-field appearance="outline" class="date-range-picker" (click)="picker.open()">
-            <mat-label>Período de Análisis</mat-label>
-            <mat-date-range-input [formGroup]="range" [rangePicker]="picker" [max]="today">
-              <input matStartDate formControlName="start" placeholder="Inicio">
-              <input matEndDate formControlName="end" placeholder="Fin">
-            </mat-date-range-input>
-            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-            <mat-date-range-picker #picker></mat-date-range-picker>
+          <mat-form-field appearance="outline" class="date-picker-single">
+            <mat-label>Fecha Inicio</mat-label>
+            <input matInput [matDatepicker]="startPicker" [formControl]="range.controls.start" [max]="range.controls.end.value || today" (dateChange)="cargarReporte()">
+            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="date-picker-single">
+            <mat-label>Fecha Fin</mat-label>
+            <input matInput [matDatepicker]="endPicker" [formControl]="range.controls.end" [min]="range.controls.start.value!" [max]="today" (dateChange)="cargarReporte()">
+            <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
           </mat-form-field>
           
           <div class="quick-filters">
@@ -285,9 +289,16 @@ import { ReporteService, DashboardResponse } from './reporte';
     }
     .title-group p { margin: 0; color: #666; font-size: 14px; }
     
-    .date-filter-group { display: flex; align-items: center; gap: 15px; }
-    .quick-filters { display: flex; gap: 10px; }
-    .btn-filter { background: #C2185B; color: white; border-radius: 12px; height: 48px; padding: 0 24px; }
+    .date-filter-group { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+    .date-picker-single { width: 170px; }
+    .date-picker-single ::ng-deep .mat-mdc-form-field-subscript-wrapper { display: none; }
+    /* Fix datepicker visibility against white background */
+    .date-picker-single ::ng-deep .mdc-text-field--outlined { background-color: #f8f9fa; border-radius: 8px; }
+    .date-picker-single ::ng-deep .mdc-floating-label { color: #C2185B !important; font-weight: 600; }
+    .date-picker-single ::ng-deep .mat-mdc-input-element { color: #333 !important; font-weight: 500; }
+    .date-picker-single ::ng-deep .mat-datepicker-toggle { color: #C2185B !important; }
+    .quick-filters { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-filter { background: #C2185B; color: white; border-radius: 12px; height: 50px; padding: 0 24px; }
     .kpi-container {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
