@@ -37,6 +37,27 @@ input, textarea, select {
   -webkit-text-fill-color: #5d4037 !important;
 }
 
+/* FIX CRÍTICO: Texto del valor seleccionado en mat-select (el que queda visible en el campo) */
+.mat-mdc-select-value,
+.mat-mdc-select-value-text,
+.mat-mdc-select-trigger,
+.mat-mdc-select-min-line,
+span.mat-mdc-select-value-text span {
+  color: #5d4037 !important;
+  -webkit-text-fill-color: #5d4037 !important;
+}
+
+/* FIX: Placeholder del mat-select cuando no hay valor seleccionado */
+.mat-mdc-select-placeholder {
+  color: rgba(0, 0, 0, 0.4) !important;
+  -webkit-text-fill-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* FIX: Flecha/icono del mat-select */
+.mat-mdc-select-arrow svg {
+  fill: var(--deep-rose) !important;
+}
+
 /* Estilizar el borde real de Material (Notched Outline) - LIMPIEZA TOTAL */
 .mdc-notched-outline__leading,
 .mdc-notched-outline__notch,

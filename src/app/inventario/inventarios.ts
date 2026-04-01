@@ -78,7 +78,8 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
           <ng-container matColumnDef="estado">
             <th mat-header-cell *matHeaderCellDef> Estado </th>
             <td mat-cell *matCellDef="let p">
-              <span [class.status-active]="p.activo" [class.status-inactive]="!p.activo">
+              <span *ngIf="p.stockActual <= 0" class="status-out-of-stock">Agotado</span>
+              <span *ngIf="p.stockActual > 0" [class.status-active]="p.activo" [class.status-inactive]="!p.activo">
                 {{ p.activo ? 'Disponible' : 'Inactivo' }}
               </span>
             </td>
@@ -133,6 +134,31 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
       background: #ffebee;
       padding: 2px 8px;
       border-radius: 4px;
+    }
+    .status-out-of-stock {
+      background: #fff3e0;
+      color: #ef6c00;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid #ffe0b2;
+    }
+    .status-active {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .status-inactive {
+      background: #fafafa;
+      color: #9e9e9e;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
     }
     .loading-state {
       padding: 40px;

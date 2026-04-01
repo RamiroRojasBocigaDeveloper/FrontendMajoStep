@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -72,12 +73,14 @@ export class GastoDialog implements OnInit {
   private categoriaGastoService = inject(CategoriaGastoService);
   private subcategoriaGastoService = inject(SubcategoriaGastoService);
   dialogRef = inject(MatDialogRef<GastoDialog>);
+  data = inject(MAT_DIALOG_DATA);
+
 
   categorias: CategoriaGasto[] = [];
   subcategorias: SubcategoriaGasto[] = [];
 
   form: FormGroup = this.fb.group({
-    sesionId: [1], // TODO: Obtener sesionId real
+    sesionId: [this.data?.sesionId || 1, Validators.required],
     categoriaGastoId: ['', Validators.required],
     subcategoriaGastoId: [null],
     monto: ['', [Validators.required, Validators.min(1)]],

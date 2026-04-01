@@ -1,10 +1,15 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ReporteService, DashboardResponse } from './reporte';
 
 @Component({
@@ -16,174 +21,400 @@ import { ReporteService, DashboardResponse } from './reporte';
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatFormFieldModule,
+    MatInputModule,
+    ReactiveFormsModule
   ],
   template: `
     <mat-card class="header-card">
       <div class="header-content">
         <div class="title-group">
-          <h1>Reportes Dinámicos</h1>
-          <p>Visualiza el rendimiento real de tu tienda, ventas, gastos y ganancias</p>
+          <h1>Análisis Financiero Premium</h1>
+          <p>Visualización avanzada de rentabilidad y rendimiento</p>
         </div>
-        <mat-icon color="primary" style="font-size: 40px; width: 40px; height: 40px;">insights</mat-icon>
-      </div>
-      <div class="actions">
-        <button mat-stroked-button color="primary" (click)="cargarReporte()">
-          <mat-icon>refresh</mat-icon> Actualizar
-        </button>
+        <div class="date-filter-group">
+          <mat-form-field appearance="outline" class="date-range-picker" (click)="picker.open()">
+            <mat-label>Período de Análisis</mat-label>
+            <mat-date-range-input [formGroup]="range" [rangePicker]="picker" [max]="today">
+              <input matStartDate formControlName="start" placeholder="Inicio">
+              <input matEndDate formControlName="end" placeholder="Fin">
+            </mat-date-range-input>
+            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-date-range-picker #picker></mat-date-range-picker>
+          </mat-form-field>
+          
+          <div class="quick-filters">
+            <button mat-stroked-button (click)="setRange('week')">Semana</button>
+            <button mat-stroked-button (click)="setRange('month')">Mes</button>
+            <button mat-flat-button class="btn-filter" (click)="cargarReporte()">
+              <mat-icon>analytics</mat-icon> Actualizar
+            </button>
+          </div>
+        </div>
       </div>
     </mat-card>
 
-    <div *ngIf="loading">
-      <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+    <div *ngIf="loading" class="progress-container">
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     </div>
 
-    <div class="dashboard-grid" *ngIf="data()">
-      <!-- KPI Cards -->
-      <mat-card class="kpi-card sales">
+    <!-- PREMIUM KPI CARDS -->
+    <div class="kpi-container" *ngIf="data()">
+      <div class="kpi-card-luxury sales-card">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-info">
+          <span class="kpi-label">VENTAS TOTALES</span>
+          <h2 class="kpi-value">{{data()?.totalVentas | currency:'USD':'symbol':'1.0-0'}}</h2>
+        </div>
+      </div>
+
+      <div class="kpi-card-luxury expenses-card">
+        <div class="kpi-icon">💸</div>
+        <div class="kpi-info">
+          <span class="kpi-label">TOTAL GASTOS</span>
+          <h2 class="kpi-value">{{(data()?.totalGastos || 0) + (data()?.totalSueldos || 0) | currency:'USD':'symbol':'1.0-0'}}</h2>
+        </div>
+      </div>
+
+      <div class="kpi-card-luxury profit-card">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-info">
+          <span class="kpi-label">GANANCIA TOTAL</span>
+          <h2 class="kpi-value">{{data()?.gananciaProductos | currency:'USD':'symbol':'1.0-0'}}</h2>
+        </div>
+      </div>
+
+      <div class="kpi-card-luxury cashflow-card">
+        <div class="kpi-icon">📊</div>
+        <div class="kpi-info">
+          <span class="kpi-label">FLUJO DE CAJA (NETO)</span>
+          <h2 class="kpi-value" [class.negative]="(data()?.gananciaNeta || 0) < 0">
+            {{data()?.gananciaNeta | currency:'USD':'symbol':'1.0-0'}}
+          </h2>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLES SECTION (REPLACING CHARTS) -->
+    <div class="charts-grid" *ngIf="data()">
+      <mat-card class="chart-card table-summary-card">
         <mat-card-header>
-          <mat-icon mat-card-avatar>payments</mat-icon>
-          <mat-card-title>Ventas Totales</mat-card-title>
+          <div class="chart-title-group">
+            <span class="chart-emoji">📊</span>
+            <mat-card-title>Ventas por Categoría</mat-card-title>
+          </div>
         </mat-card-header>
         <mat-card-content>
-          <h2 class="kpi-value">{{data()?.totalVentas | currency:'USD'}}</h2>
-          <p class="kpi-sub">{{data()?.cantidadVentas}} transacciones</p>
+          <div class="mini-table-container">
+            <table class="premium-table mini">
+              <thead>
+                <tr>
+                  <th>Categoría</th>
+                  <th class="text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of ventasPorCategoria()">
+                  <td class="category-name">{{item.nombre}}</td>
+                  <td class="text-right">{{item.monto | currency:'USD':'symbol':'1.0-0'}}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div *ngIf="ventasPorCategoria().length === 0" class="empty-state-mini">Sin datos</div>
+          </div>
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="kpi-card expenses">
+      <mat-card class="chart-card table-summary-card">
         <mat-card-header>
-          <mat-icon mat-card-avatar>shopping_bag</mat-icon>
-          <mat-card-title>Gastos y Sueldos</mat-card-title>
+          <div class="chart-title-group">
+            <span class="chart-emoji">💰</span>
+            <mat-card-title>Ganancias por Categoría</mat-card-title>
+          </div>
         </mat-card-header>
         <mat-card-content>
-          <h2 class="kpi-value text-warn">{{(data()?.totalGastos || 0) + (data()?.totalSueldos || 0) | currency:'USD'}}</h2>
-          <p class="kpi-sub">Gastos operativos</p>
+          <div class="mini-table-container">
+            <table class="premium-table mini">
+              <thead>
+                <tr>
+                  <th>Categoría</th>
+                  <th class="text-right">Ganancia</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of gananciasPorCategoria()">
+                  <td class="category-name green">{{item.nombre}}</td>
+                  <td class="text-right green">{{item.monto | currency:'USD':'symbol':'1.0-0'}}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div *ngIf="gananciasPorCategoria().length === 0" class="empty-state-mini">Sin datos</div>
+          </div>
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="kpi-card profit">
+      <mat-card class="chart-card table-summary-card">
         <mat-card-header>
-          <mat-icon mat-card-avatar>trending_up</mat-icon>
-          <mat-card-title>Ganancia Neta</mat-card-title>
+          <div class="chart-title-group">
+            <span class="chart-emoji">💸</span>
+            <mat-card-title>Gastos por Categoría</mat-card-title>
+          </div>
         </mat-card-header>
         <mat-card-content>
-          <h2 class="kpi-value text-success">{{data()?.gananciaNeta | currency:'USD'}}</h2>
-          <p class="kpi-sub">Libre de gastos</p>
+          <div class="mini-table-container">
+            <table class="premium-table mini">
+              <thead>
+                <tr>
+                  <th>Categoría</th>
+                  <th class="text-right">Gasto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of gastosPorCategoria()">
+                  <td class="category-name red">{{item.nombre}}</td>
+                  <td class="text-right red">{{item.monto | currency:'USD':'symbol':'1.0-0'}}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div *ngIf="gastosPorCategoria().length === 0" class="empty-state-mini">Sin datos</div>
+          </div>
         </mat-card-content>
       </mat-card>
     </div>
 
-    <div class="stats-grid" *ngIf="data()">
-      <mat-card class="luxury-card full-height">
-        <mat-card-header>
-          <mat-card-title>Productos más vendidos</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="list-item" *ngFor="let item of productosMasVendidos()">
-            <span class="item-name">{{item.nombre}}</span>
-            <span class="item-value">{{item.cantidad}} und.</span>
-          </div>
-          <div *ngIf="productosMasVendidos().length === 0" class="empty-list">
-            No hay datos suficientes
-          </div>
-        </mat-card-content>
-      </mat-card>
+    <!-- TOP PRODUCTS AND EXPENSE DETAILS -->
+    <div class="bottom-grid" *ngIf="data()">
+       <mat-card class="luxury-table-card top-products">
+          <mat-card-header>
+            <mat-card-title>Top Productos Vendidos</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="table-container">
+              <table class="premium-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Producto</th>
+                    <th class="text-right">Unidades</th>
+                    <th>Popularidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of productosMasVendidos(); let i = index">
+                    <td><span class="rank-badge">{{i + 1}}</span></td>
+                    <td>{{item.nombre}}</td>
+                    <td class="text-right">{{item.cantidad}}</td>
+                    <td class="progress-col">
+                       <div class="progress-bar-small">
+                          <div class="progress-fill" [style.width.%]="(item.cantidad / (productosMasVendidos()[0].cantidad || 1)) * 100"></div>
+                       </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div *ngIf="productosMasVendidos().length === 0" class="empty-state">
+               No hay ventas registradas en este período.
+            </div>
+          </mat-card-content>
+       </mat-card>
 
-      <mat-card class="luxury-card full-height">
-        <mat-card-header>
-          <mat-card-title>Ventas por Método de Pago</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="list-item" *ngFor="let item of ventasPorMetodo()">
-            <span class="item-name">{{item.metodo}}</span>
-            <span class="item-value">{{item.monto | currency:'USD'}}</span>
-          </div>
-          <div *ngIf="ventasPorMetodo().length === 0" class="empty-list">
-            Esperando ventas...
-          </div>
-        </mat-card-content>
-      </mat-card>
+       <mat-card class="luxury-table-card expense-details">
+          <mat-card-header>
+            <mat-card-title>Detalle Consolidado de Gastos</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="table-container">
+              <table class="premium-table">
+                <thead>
+                  <tr>
+                    <th>Categoría</th>
+                    <th class="text-right">Inversión</th>
+                    <th>Distribución</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of gastosPorCategoria()">
+                    <td class="category-name">{{item.nombre}}</td>
+                    <td class="text-right monto-negativo">{{item.monto | currency:'USD':'symbol':'1.0-0'}}</td>
+                    <td>
+                       <div class="progress-bar-small">
+                          <div class="progress-fill expense" [style.width.%]="(item.monto / ((data()?.totalGastos || 0) + (data()?.totalSueldos || 1))) * 100"></div>
+                       </div>
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                   <tr class="total-row">
+                      <td>TOTAL EGRESOS</td>
+                      <td class="text-right">{{(data()?.totalGastos || 0) + (data()?.totalSueldos || 0) | currency:'USD':'symbol':'1.0-0'}}</td>
+                      <td></td>
+                   </tr>
+                </tfoot>
+              </table>
+            </div>
+          </mat-card-content>
+       </mat-card>
     </div>
   `,
   styles: [`
-    .header-container {
+    .header-card {
+      background: white;
+      border-radius: 24px;
+      padding: 20px;
+      margin-bottom: 24px;
+      border: 1px solid #eee;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .header-content {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
-    }
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      flex-wrap: wrap;
       gap: 20px;
-      margin-bottom: 24px;
     }
-    .stats-grid {
+    .title-group h1 {
+      margin: 0;
+      font-weight: 800;
+      background: linear-gradient(45deg, #C2185B, #E91E63);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .title-group p { margin: 0; color: #666; font-size: 14px; }
+    
+    .date-filter-group { display: flex; align-items: center; gap: 15px; }
+    .quick-filters { display: flex; gap: 10px; }
+    .btn-filter { background: #C2185B; color: white; border-radius: 12px; height: 48px; padding: 0 24px; }
+    .kpi-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .kpi-card-luxury {
+      padding: 24px;
+      border-radius: 24px;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .sales-card { background: linear-gradient(135deg, #AD1457, #E91E63); }
+    .expenses-card { background: linear-gradient(135deg, #D32F2F, #FF5252); }
+    .profit-card { background: linear-gradient(135deg, #2E7D32, #4CAF50); }
+    .cashflow-card { background: linear-gradient(135deg, #0288D1, #03A9F4); }
+    .kpi-icon { font-size: 32px; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 15px; }
+    .kpi-label { font-size: 11px; font-weight: 700; opacity: 0.9; letter-spacing: 1px; }
+    .kpi-value { font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+    .kpi-value.negative { color: #ffdada; }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+    .chart-card { border-radius: 24px; background: #fff; border: 1px solid #f0f0f0; box-shadow: 0 5px 15px rgba(0,0,0,0.02); min-height: 250px; }
+    .chart-title-group { display: flex; align-items: center; gap: 10px; }
+    .chart-emoji { font-size: 20px; }
+    
+    .mini-table-container { padding: 10px 15px; }
+    .empty-state-mini { padding: 20px; text-align: center; color: #ccc; font-size: 12px; }
+
+    .bottom-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-      gap: 20px;
+      gap: 25px;
     }
-    .kpi-card {
-      border-radius: 24px;
-      padding: 10px;
-      border: 1px solid var(--border-color);
-      box-shadow: var(--luxury-shadow);
-      transition: transform 0.3s ease;
-    }
-    .kpi-card:hover { transform: translateY(-5px); }
-    .kpi-value {
-      font-size: 36px;
-      font-weight: 800;
-      margin: 10px 0 0 0;
-      letter-spacing: -1px;
-    }
-    .kpi-sub { color: var(--subtle-text); font-size: 14px; margin: 0; }
-    .text-warn { color: #f44336; }
-    .text-success { color: #43a047; }
+    .luxury-table-card { border-radius: 24px; border: 1px solid #f0f0f0; }
+    .table-container { padding: 0 15px 15px; overflow-x: auto; }
+    .premium-table { width: 100%; border-collapse: collapse; }
+    .premium-table th { text-align: left; padding: 15px 10px; border-bottom: 2px solid #f8f9fa; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    .premium-table td { padding: 14px 10px; border-bottom: 1px solid #fcfcfc; font-weight: 600; color: #333; font-size: 13px; }
+    .premium-table.mini td { padding: 10px; font-size: 12px; }
     
-    .list-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid #f0f0f0;
-    }
-    .item-name { font-weight: 600; color: #444; }
-    .item-value { font-weight: 800; color: var(--primary-pink); }
-    
-    .full-height { height: 100%; border-radius: 20px; }
-    .empty-list { padding: 40px; text-align: center; color: #ccc; }
-    
-    mat-icon[mat-card-avatar] {
-      background: rgba(216, 27, 96, 0.1);
-      color: var(--primary-pink);
-      padding: 12px;
-      border-radius: 12px;
-      display: flex;
+    .text-right { text-align: right; }
+    .monto-negativo { color: #d32f2f; }
+    .category-name { color: #C2185B; font-weight: 700; }
+    .category-name.green { color: #2E7D32; }
+    .category-name.red { color: #D32F2F; }
+    .green { color: #2E7D32 !important; }
+    .red { color: #D32F2F !important; }
+
+    .rank-badge {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: #f0f0f0;
+      color: #777;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 800;
     }
+    tr:nth-child(1) .rank-badge { background: #FFD700; color: #856404; }
+    tr:nth-child(2) .rank-badge { background: #C0C0C0; color: #383d41; }
+    tr:nth-child(3) .rank-badge { background: #CD7F32; color: #721c24; }
+
+    .progress-bar-small { width: 80px; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; margin-left: auto; }
+    .progress-fill { height: 100%; background: #E91E63; border-radius: 3px; }
+    .progress-fill.expense { background: #FF5252; }
+
+    .total-row td { background: #fffafb; font-weight: 800; color: #C2185B; border-top: 2px solid #C2185B; }
+    .empty-state { padding: 40px; text-align: center; color: #999; font-style: italic; }
   `]
 })
 export class Reportes implements OnInit {
   private reporteService = inject(ReporteService);
+  private cdr = inject(ChangeDetectorRef);
   
   data = signal<DashboardResponse | null>(null);
   loading = false;
+  today = new Date();
+
+  range = new FormGroup({
+    start: new FormControl<Date | null>(new Date(new Date().setDate(1))),
+    end: new FormControl<Date | null>(new Date())
+  });
 
   ngOnInit() {
     this.cargarReporte();
   }
 
   cargarReporte() {
+    const { start, end } = this.range.value;
+    if (!start || !end) return;
+
     this.loading = true;
-    this.reporteService.obtenerGlobal().subscribe({
+    const inicio = start.toISOString().split('T')[0];
+    const fin = end.toISOString().split('T')[0];
+
+    this.reporteService.obtenerPorRango(inicio, fin).subscribe({
       next: (res) => {
         this.data.set(res);
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => this.loading = false
     });
+  }
+
+  setRange(type: 'week' | 'month') {
+    const end = new Date();
+    let start = new Date();
+    if (type === 'week') {
+      const day = start.getDay();
+      start.setDate(start.getDate() - day + (day === 0 ? -6 : 1));
+    } else {
+      start = new Date(start.getFullYear(), start.getMonth(), 1);
+    }
+    this.range.patchValue({ start, end });
+    this.cargarReporte();
   }
 
   productosMasVendidos() {
@@ -192,9 +423,21 @@ export class Reportes implements OnInit {
       .sort((a, b) => b.cantidad - a.cantidad);
   }
 
-  ventasPorMetodo() {
-    const list = this.data()?.ventasPorMetodoPago || {};
-    return Object.entries(list).map(([metodo, monto]) => ({ metodo, monto }))
+  ventasPorCategoria() {
+    const list = this.data()?.ventasPorCategoria || {};
+    return Object.entries(list).map(([nombre, monto]) => ({ nombre, monto }))
+      .sort((a, b) => b.monto - a.monto);
+  }
+
+  gananciasPorCategoria() {
+    const list = this.data()?.gananciasPorCategoria || {};
+    return Object.entries(list).map(([nombre, monto]) => ({ nombre, monto }))
+      .sort((a, b) => b.monto - a.monto);
+  }
+
+  gastosPorCategoria() {
+    const list = this.data()?.gastosPorCategoria || {};
+    return Object.entries(list).map(([nombre, monto]) => ({ nombre, monto }))
       .sort((a, b) => b.monto - a.monto);
   }
 }

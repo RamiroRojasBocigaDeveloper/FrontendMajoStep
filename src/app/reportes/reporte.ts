@@ -7,8 +7,13 @@ export interface DashboardResponse {
   totalGastos: number;
   totalSueldos: number;
   gananciaNeta: number;
+  gananciaProductos: number;
+  costoMercancia: number;
   cantidadVentas: number;
   ventasPorMetodoPago: { [key: string]: number };
+  ventasPorCategoria: { [key: string]: number };
+  gananciasPorCategoria: { [key: string]: number };
+  gastosPorCategoria: { [key: string]: number };
   productosMasVendidos: { [key: string]: number };
 }
 

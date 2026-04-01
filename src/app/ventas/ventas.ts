@@ -64,11 +64,18 @@ interface ItemCarrito extends Producto {
                 <mat-icon matSuffix>search</mat-icon>
                 
                 <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onProductSelected($event)">
-                  <mat-option *ngFor="let producto of productosFiltrados()" [value]="producto">
+                  <mat-option 
+                    *ngFor="let producto of productosFiltrados()" 
+                    [value]="producto"
+                    [disabled]="producto.stockActual <= 0"
+                    [class.sin-stock]="producto.stockActual <= 0">
                     <div class="product-option">
                       <span class="prod-name">{{producto.nombre}}</span>
                       <span class="prod-ref">{{producto.referencia}}</span>
                       <span class="prod-price">{{producto.precioVenta | currency:'USD'}}</span>
+                      <span class="stock-badge" [class.badge-ok]="producto.stockActual > 5" [class.badge-low]="producto.stockActual > 0 && producto.stockActual <= 5" [class.badge-empty]="producto.stockActual <= 0">
+                        {{ producto.stockActual <= 0 ? 'Sin stock' : 'Stock: ' + producto.stockActual }}
+                      </span>
                     </div>
                   </mat-option>
                 </mat-autocomplete>
@@ -270,10 +277,15 @@ interface ItemCarrito extends Producto {
     }
     ::ng-deep td.mat-mdc-cell { color: var(--dark-text) !important; font-size: 15px; }
     .qty-control span { font-weight: 700; color: var(--primary-pink); min-width: 25px; text-align: center; }
-    .product-option { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 15px; }
+    .product-option { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; }
     .prod-name { font-weight: 600; flex: 1; color: #333333 !important; }
     .prod-ref { font-family: monospace; color: var(--subtle-text); font-size: 12px; }
     .prod-price { color: var(--primary-pink); font-weight: 700; }
+    .stock-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+    .badge-ok { background: #e8f5e9; color: #2e7d32; }
+    .badge-low { background: #fff8e1; color: #f57f17; }
+    .badge-empty { background: #ffebee; color: #c62828; }
+    ::ng-deep .sin-stock { opacity: 0.5 !important; text-decoration: line-through !important; cursor: not-allowed !important; }
 
     /* Estilos Pantalla Bloqueo */
     .lock-screen {
@@ -392,11 +404,22 @@ export class Ventas implements OnInit {
   }
 
   agregarAlCarrito(producto: Producto) {
+    // BLOQUEO: No permitir agregar productos sin stock
+    if (producto.stockActual <= 0) {
+      this.snackBar.open(`🚫 "${producto.nombre}" no tiene stock disponible.`, 'Entendido', { duration: 4000 });
+      return;
+    }
+
     const actual = this.carrito();
     const index = actual.findIndex(p => p.id === producto.id);
     let nuevaCant = 1;
     
     if (index >= 0) {
+      // BLOQUEO: No superar el stock disponible
+      if (actual[index].cantidadVenta >= producto.stockActual) {
+        this.snackBar.open(`⚠️ No puedes agregar más de ${producto.stockActual} unidades de "${producto.nombre}".`, 'OK', { duration: 3500 });
+        return;
+      }
       actual[index].cantidadVenta += 1;
       nuevaCant = actual[index].cantidadVenta;
       this.carrito.set([...actual]);
@@ -404,12 +427,10 @@ export class Ventas implements OnInit {
       this.carrito.set([...actual, { ...producto, cantidadVenta: 1 }]);
     }
     
-    if (nuevaCant >= producto.stockActual && producto.stockActual > 0) {
-      this.snackBar.open(`⚠️ Agregado: ${producto.nombre}. ¡Solo queda ${producto.stockActual} en stock!`, 'Aceptar', { duration: 4000 });
-    } else if (producto.stockActual <= 0) {
-      this.snackBar.open(`⚠️ ${producto.nombre} registrado, pero NO hay stock disponible.`, 'Aceptar', { duration: 4000 });
+    if (nuevaCant >= producto.stockActual) {
+      this.snackBar.open(`⚠️ Último en stock: ${producto.nombre} (${producto.stockActual} und.)`, 'Aceptar', { duration: 4000 });
     } else {
-      this.snackBar.open(`Agregado: ${producto.nombre}`, 'OK', { duration: 2000 });
+      this.snackBar.open(`✅ Agregado: ${producto.nombre}`, 'OK', { duration: 2000 });
     }
   }
 
@@ -418,13 +439,23 @@ export class Ventas implements OnInit {
     const index = actual.findIndex(p => p.id === item.id);
     if (index >= 0) {
       const nuevaCant = actual[index].cantidadVenta + cambio;
+      
+      // BLOQUEO: No permitir superar el stock disponible
+      if (cambio > 0 && actual[index].cantidadVenta >= actual[index].stockActual) {
+        this.snackBar.open(`🚫 Stock máximo alcanzado para "${actual[index].nombre}" (${actual[index].stockActual} und.).`, 'OK', { duration: 3000 });
+        return;
+      }
+
       if (nuevaCant > 0) {
         actual[index].cantidadVenta = nuevaCant;
         this.carrito.set([...actual]);
         
-        if (nuevaCant >= actual[index].stockActual && cambio > 0) {
-          this.snackBar.open(`⚠️ ${actual[index].nombre} llegó al límite del stock actual (${actual[index].stockActual}).`, 'OK', { duration: 3000 });
+        if (nuevaCant === actual[index].stockActual && cambio > 0) {
+          this.snackBar.open(`⚠️ "${actual[index].nombre}" llegó al límite del stock (${actual[index].stockActual} und.).`, 'OK', { duration: 3000 });
         }
+      } else {
+        // Si la cantidad llega a 0, remover del carrito
+        this.carrito.set(actual.filter(p => p.id !== item.id));
       }
     }
   }

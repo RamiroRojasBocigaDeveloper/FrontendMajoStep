@@ -9,6 +9,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { GastoService, Gasto } from './gasto';
 import { GastoDialog } from './gasto-dialog/gasto-dialog';
 import { AuthService } from '../auth/auth';
+import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
+
 
 @Component({
   selector: 'app-gastos',
@@ -140,6 +142,7 @@ import { AuthService } from '../auth/auth';
 export class Gastos implements OnInit {
   private gastoService = inject(GastoService);
   private authService = inject(AuthService);
+  private sesionService = inject(SesionTrabajoService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
@@ -184,18 +187,32 @@ export class Gastos implements OnInit {
   }
 
   abrirDialogoGasto() {
-    const dialogRef = this.dialog.open(GastoDialog, {
-      width: '400px'
-    });
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
 
-    dialogRef.afterClosed().subscribe((result: any) => {
-      if (result) {
-        this.gastoService.crear(result).subscribe({
-          next: () => {
-            this.snackBar.open('Gasto registrado con éxito', 'OK');
-            this.cargarGastos();
+    this.loading = true;
+    this.sesionService.obtenerSesionActiva(user.id).subscribe({
+      next: (sesion) => {
+        this.loading = false;
+        const dialogRef = this.dialog.open(GastoDialog, {
+          width: '400px',
+          data: { sesionId: sesion.id }
+        });
+
+        dialogRef.afterClosed().subscribe((result: any) => {
+          if (result) {
+            this.gastoService.crear(result).subscribe({
+              next: () => {
+                this.snackBar.open('Gasto registrado con éxito', 'OK');
+                this.cargarGastos();
+              }
+            });
           }
         });
+      },
+      error: () => {
+        this.loading = false;
+        this.snackBar.open('Debes tener una sesión abierta para registrar gastos', 'Cerrar');
       }
     });
   }
