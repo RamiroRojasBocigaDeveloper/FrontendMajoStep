@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface SesionTrabajo {
   id: number;
@@ -25,7 +26,7 @@ export interface ResumenCierre {
 })
 export class SesionTrabajoService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/sesiones';
+  private apiUrl = `${environment.apiUrl}/sesiones`;
 
   abrirSesion(usuarioId: number): Observable<SesionTrabajo> {
     return this.http.post<SesionTrabajo>(`${this.apiUrl}/abrir/${usuarioId}`, {});

@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface DetalleVentaRequest {
   productoId: number;
@@ -19,7 +20,7 @@ export interface VentaRequest {
 })
 export class VentaService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/ventas';
+  private apiUrl = `${environment.apiUrl}/ventas`;
 
   procesarVenta(request: VentaRequest): Observable<any> {
     return this.http.post(this.apiUrl, request);

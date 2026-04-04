@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface DashboardResponse {
   totalVentas: number;
@@ -22,7 +23,7 @@ export interface DashboardResponse {
 })
 export class ReporteService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/reportes';
+  private apiUrl = `${environment.apiUrl}/reportes`;
 
   obtenerGlobal(): Observable<DashboardResponse> {
     return this.http.get<DashboardResponse>(`${this.apiUrl}/dashboard/global`);

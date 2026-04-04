@@ -1,29 +1,31 @@
-# ─── Etapa 1: Build Angular ──────────────────────────────────────────────────
+# Build stage
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copiar manifiestos primero (cache de npm)
-COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+# Copia package.json y package-lock.json
+COPY package*.json ./
 
-# Copiar código fuente y compilar en modo producción
+# Instala dependencias
+RUN npm ci
+
+# Copia el código fuente
 COPY . .
-RUN npm run build -- --configuration production
 
-# ─── Etapa 2: Servir con Nginx ───────────────────────────────────────────────
-FROM nginx:1.27-alpine AS runtime
+# Compila para producción
+RUN npm run build
 
-# Remover configuración default de Nginx
-RUN rm /etc/nginx/conf.d/default.conf
+# Runtime stage
+FROM nginx:alpine
 
-# Copiar nuestra configuración personalizada
-COPY nginx.conf /etc/nginx/conf.d/app.conf
+# Copia la configuración de nginx
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copiar los archivos compilados de Angular
-# Angular 17+ con @angular/build:application genera en dist/<name>/browser
+# Copia los archivos compilados del build anterior
 COPY --from=builder /app/dist/chancla-fron/browser /usr/share/nginx/html
 
+# Expone el puerto 80
 EXPOSE 80
 
+# Inicia nginx
 CMD ["nginx", "-g", "daemon off;"]

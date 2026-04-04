@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface MetodoPago {
   id: number;
@@ -13,7 +14,7 @@ export interface MetodoPago {
 })
 export class MetodoPagoService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/metodos-pago';
+  private apiUrl = `${environment.apiUrl}/metodos-pago`;
 
   obtenerTodos(): Observable<MetodoPago[]> {
     return this.http.get<MetodoPago[]>(this.apiUrl);

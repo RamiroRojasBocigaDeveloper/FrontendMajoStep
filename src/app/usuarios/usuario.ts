@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Usuario {
   id?: number;
@@ -27,7 +28,7 @@ export interface UsuarioRequest {
 })
 export class UsuarioService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/usuarios';
+  private apiUrl = `${environment.apiUrl}/usuarios`;
 
   obtenerTodos(): Observable<Usuario[]> {
     return this.http.get<Usuario[]>(this.apiUrl);
