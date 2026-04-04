@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export type TipoMovimiento = 'ENTRADA' | 'SALIDA' | 'AJUSTE';
 
@@ -27,7 +28,7 @@ export interface MovimientoInventarioResponse {
 })
 export class MovimientoInventarioService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/inventario';
+  private apiUrl = `${environment.apiUrl}/inventario`;
 
   registrarMovimiento(request: MovimientoInventarioRequest): Observable<MovimientoInventarioResponse> {
     return this.http.post<MovimientoInventarioResponse>(`${this.apiUrl}/movimiento`, request);
