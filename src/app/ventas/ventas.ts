@@ -12,9 +12,10 @@ import { MatTableModule } from '@angular/material/table';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MatDialogModule, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 
 import { ProductoService, Producto } from '../productos/producto';
@@ -23,8 +24,51 @@ import { MetodoPagoService, MetodoPago } from './metodo-pago';
 import { AuthService } from '../auth/auth';
 import { SesionTrabajoService, SesionTrabajo } from '../sesiones-trabajo/sesion-trabajo';
 
+// DIÁLOGO PARA EXPANDIR FOTO
+@Component({
+  selector: 'app-image-preview',
+  standalone: true,
+  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  template: `
+    <div class="image-preview-container">
+      <button mat-icon-button class="close-btn" mat-dialog-close>
+        <mat-icon>close</mat-icon>
+      </button>
+      <img [src]="data" alt="Vista ampliada">
+    </div>
+  `,
+  styles: [`
+    .image-preview-container {
+      position: relative;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    .image-preview-container img {
+      width: 100%;
+      height: auto;
+      max-height: 80vh;
+      object-fit: contain;
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      color: white;
+      background: rgba(0,0,0,0.5);
+    }
+  `]
+})
+export class ImagePreviewDialog {
+  data = inject(MAT_DIALOG_DATA);
+}
+
 interface ItemCarrito extends Producto {
   cantidadVenta: number;
+  precioUnitario: number;
 }
 
 @Component({
@@ -45,7 +89,8 @@ interface ItemCarrito extends Producto {
     MatDialogModule,
     MatAutocompleteModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatTooltipModule
   ],
   template: `
     <div class="venta-grid" *ngIf="sesionActiva(); else cajaCerrada">
@@ -98,12 +143,23 @@ interface ItemCarrito extends Producto {
             <table mat-table [dataSource]="carrito()" class="full-width">
               <ng-container matColumnDef="producto">
                 <th mat-header-cell *matHeaderCellDef> Producto </th>
-                <td mat-cell *matCellDef="let item"> {{item.nombre}} </td>
+                <td mat-cell *matCellDef="let item">
+                  <div class="prod-cell">
+                    <img *ngIf="item.imagenUrl" [src]="item.imagenUrl" class="cart-thumb" (click)="abrirImagen(item.imagenUrl)" matTooltip="Ver foto ampliada">
+                    <mat-icon *ngIf="!item.imagenUrl" class="cart-thumb-placeholder">image</mat-icon>
+                    <span>{{item.nombre}}</span>
+                  </div>
+                </td>
               </ng-container>
 
               <ng-container matColumnDef="precio">
                 <th mat-header-cell *matHeaderCellDef> Precio </th>
-                <td mat-cell *matCellDef="let item"> {{item.precioVenta | currency:'USD'}} </td>
+                <td mat-cell *matCellDef="let item"> 
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 130px;">
+                    <span matPrefix>$</span>
+                    <input matInput type="number" [(ngModel)]="item.precioUnitario" (ngModelChange)="calcularTotal()">
+                  </mat-form-field>
+                </td>
               </ng-container>
 
               <ng-container matColumnDef="cantidad">
@@ -119,7 +175,7 @@ interface ItemCarrito extends Producto {
 
               <ng-container matColumnDef="subtotal">
                 <th mat-header-cell *matHeaderCellDef> Subtotal </th>
-                <td mat-cell *matCellDef="let item"> {{ (item.precioVenta * item.cantidadVenta) | currency:'USD'}} </td>
+                <td mat-cell *matCellDef="let item"> {{ (item.precioUnitario * item.cantidadVenta) | currency:'USD'}} </td>
               </ng-container>
 
               <ng-container matColumnDef="acciones">
@@ -302,6 +358,10 @@ interface ItemCarrito extends Producto {
     }
     ::ng-deep td.mat-mdc-cell { color: var(--dark-text) !important; font-size: 15px; }
     .qty-control span { font-weight: 700; color: var(--primary-pink); min-width: 25px; text-align: center; }
+    .prod-cell { display: flex; align-items: center; gap: 10px; }
+    .cart-thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; cursor: pointer; transition: transform 0.2s; border: 1px solid #eee; }
+    .cart-thumb:hover { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    .cart-thumb-placeholder { width: 40px; height: 40px; font-size: 40px; color: #ccc; }
     .product-option { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; }
     .prod-name { font-weight: 600; flex: 1; color: #333333 !important; }
     .prod-ref { font-family: monospace; color: var(--subtle-text); font-size: 12px; }
@@ -371,6 +431,7 @@ export class Ventas implements OnInit {
   private sesionService = inject(SesionTrabajoService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   metodosPago: MetodoPago[] = [];
   metodoPagoSeleccionado = 1;
@@ -426,6 +487,16 @@ export class Ventas implements OnInit {
     this.router.navigate(['/sesiones-trabajo']);
   }
 
+  abrirImagen(url: string) {
+    if (!url) return;
+    this.dialog.open(ImagePreviewDialog, {
+      data: url,
+      panelClass: 'image-preview-dialog-panel',
+      maxWidth: '90vw',
+      maxHeight: '90vh'
+    });
+  }
+
   onProductSelected(event: any) {
     const producto = event.option.value as Producto;
     this.agregarAlCarrito(producto);
@@ -454,7 +525,7 @@ export class Ventas implements OnInit {
       nuevaCant = actual[index].cantidadVenta;
       this.carrito.set([...actual]);
     } else {
-      this.carrito.set([...actual, { ...producto, cantidadVenta: 1 }]);
+      this.carrito.set([...actual, { ...producto, cantidadVenta: 1, precioUnitario: producto.precioVenta }]);
     }
     
     if (nuevaCant >= producto.stockActual) {
@@ -495,7 +566,7 @@ export class Ventas implements OnInit {
   }
 
   calcularTotal() {
-    return this.carrito().reduce((acc, item) => acc + (item.precioVenta * item.cantidadVenta), 0);
+    return this.carrito().reduce((acc, item) => acc + (item.precioUnitario * item.cantidadVenta), 0);
   }
 
   finalizarVenta() {
@@ -522,7 +593,8 @@ export class Ventas implements OnInit {
       descuento: 0,
       detalles: this.carrito().map(item => ({
         productoId: item.id!,
-        cantidad: item.cantidadVenta
+        cantidad: item.cantidadVenta,
+        precioUnitario: item.precioUnitario
       }))
     };
 

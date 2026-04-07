@@ -9,6 +9,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CategoriaService, Categoria } from '../../categorias/categoria';
 import { Producto } from '../producto';
+import { CloudinaryService } from '../../cloudinary.service';
+
 
 @Component({
   selector: 'app-producto-dialog',
@@ -29,6 +31,14 @@ import { Producto } from '../producto';
     <mat-dialog-content>
       <form [formGroup]="form">
         <div class="form-grid">
+          
+          <div class="image-upload-container">
+            <label>Imagen del Producto</label>
+            <input type="file" (change)="onFileSelected($event)" accept="image/*">
+            <div *ngIf="uploading">Subiendo imagen...</div>
+            <img *ngIf="form.get('imagenUrl')?.value" [src]="form.get('imagenUrl')?.value" class="preview-img">
+          </div>
+
           <mat-form-field appearance="outline">
             <mat-label>Nombre del Producto</mat-label>
             <input matInput formControlName="nombre" placeholder="Ej: Sandalia Pink">
@@ -86,25 +96,30 @@ import { Producto } from '../producto';
   styles: [`
     .form-grid { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .image-upload-container { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .preview-img { max-width: 150px; border-radius: 8px; border: 1px solid #ccc; }
   `]
 })
 export class ProductoDialog implements OnInit {
   private fb = inject(FormBuilder);
   private categoriaService = inject(CategoriaService);
+  private cloudinaryService = inject(CloudinaryService);
   dialogRef = inject(MatDialogRef<ProductoDialog>);
   data = inject(MAT_DIALOG_DATA);
 
   categorias: Categoria[] = [];
+  uploading = false;
 
   form: FormGroup = this.fb.group({
     nombre: [this.data?.nombre || '', Validators.required],
     referencia: [this.data?.referencia || '', Validators.required],
-    categoriaId: [this.data?.categoria?.id || '', Validators.required],
+    categoriaId: [this.data?.categoriaId || this.data?.categoria?.id || '', Validators.required],
     precioCompra: [this.data?.precioCompra || 0, [Validators.required, Validators.min(0)]],
     precioVenta: [this.data?.precioVenta || 0, [Validators.required, Validators.min(0)]],
     stockActual: [this.data?.stockActual || 0, [Validators.required, Validators.min(0)]],
     stockMinimo: [this.data?.stockMinimo || 1, [Validators.required, Validators.min(0)]],
-    activo: [this.data?.activo ?? true]
+    activo: [this.data?.activo ?? true],
+    imagenUrl: [this.data?.imagenUrl || '']
   });
 
   ngOnInit() {
@@ -118,4 +133,22 @@ export class ProductoDialog implements OnInit {
       this.dialogRef.close(this.form.value);
     }
   }
+
+  onFileSelected(event: any) {
+    const file: File = event.target.files[0];
+    if (file) {
+      this.uploading = true;
+      this.cloudinaryService.uploadImage(file).subscribe({
+        next: (res: any) => {
+          this.form.patchValue({ imagenUrl: res.url });
+          this.uploading = false;
+        },
+        error: (err) => {
+          console.error('Error al subir imagen', err);
+          this.uploading = false;
+        }
+      });
+    }
+  }
 }
+
