@@ -49,7 +49,13 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
 
           <ng-container matColumnDef="nombre">
             <th mat-header-cell *matHeaderCellDef> Nombre </th>
-            <td mat-cell *matCellDef="let p"> {{p.nombre}} </td>
+            <td mat-cell *matCellDef="let p">
+              <div class="prod-cell">
+                <img *ngIf="p.imagenUrl" [src]="p.imagenUrl" class="thumb">
+                <mat-icon *ngIf="!p.imagenUrl" class="thumb-placeholder">image</mat-icon>
+                <span>{{p.nombre}}</span>
+              </div>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="categoria">
@@ -88,12 +94,14 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
           <ng-container matColumnDef="acciones">
             <th mat-header-cell *matHeaderCellDef> Acciones </th>
             <td mat-cell *matCellDef="let p">
-              <button mat-icon-button color="primary" title="Movimiento de Stock" (click)="abrirDialogoMovimiento(p)">
-                <mat-icon>swap_vert</mat-icon>
-              </button>
-              <button mat-icon-button color="accent" title="Editar">
-                <mat-icon>edit</mat-icon>
-              </button>
+              <div class="action-buttons-group">
+                <button mat-stroked-button color="primary" (click)="abrirDialogoMovimiento(p)">
+                  <mat-icon>inventory_2</mat-icon> Ingresar Stock
+                </button>
+                <button mat-stroked-button color="accent" (click)="abrirDialogoProducto(p)">
+                  <mat-icon>edit_note</mat-icon> Editar Producto
+                </button>
+              </div>
             </td>
           </ng-container>
 
@@ -176,6 +184,11 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
       border-radius: 4px;
       font-family: 'JetBrains Mono', monospace;
     }
+    .prod-cell { display: flex; align-items: center; gap: 10px; }
+    .thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+    .thumb-placeholder { width: 40px; height: 40px; font-size: 40px; color: #ccc; }
+    .action-buttons-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .action-buttons-group button { min-width: 140px; font-weight: 600; letter-spacing: 0.5px; border-width: 2px; }
   `]
 })
 export class Inventarios implements OnInit {

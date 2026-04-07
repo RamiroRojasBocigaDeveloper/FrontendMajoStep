@@ -44,6 +44,23 @@ import { Producto } from '../../productos/producto';
             <mat-label>Motivo / Descripción</mat-label>
             <textarea matInput formControlName="motivo" placeholder="Ej: Compra de lote 05/2026"></textarea>
           </mat-form-field>
+
+          <ng-container *ngIf="form.get('tipo')?.value === 'ENTRADA'">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+              <mat-form-field appearance="outline">
+                <mat-label>Nuevo Precio Costo</mat-label>
+                <input matInput type="number" formControlName="nuevoPrecioCompra">
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>Nuevo Precio Venta</mat-label>
+                <input matInput type="number" formControlName="nuevoPrecioVenta">
+              </mat-form-field>
+            </div>
+            <small style="color: gray; margin-bottom: 10px;">
+              (Opcional: Llénelo si el costo unitario cambió)
+            </small>
+          </ng-container>
         </div>
       </form>
     </mat-dialog-content>
@@ -70,7 +87,9 @@ export class InventarioDialog {
   form: FormGroup = this.fb.group({
     tipo: ['ENTRADA', Validators.required],
     cantidad: [null, [Validators.required, Validators.min(1)]],
-    motivo: ['', [Validators.required, Validators.maxLength(100)]]
+    motivo: ['', [Validators.required, Validators.maxLength(100)]],
+    nuevoPrecioCompra: [null],
+    nuevoPrecioVenta: [null]
   });
 
   onCancel() {
@@ -79,10 +98,17 @@ export class InventarioDialog {
 
   onSave() {
     if (this.form.valid) {
-      this.dialogRef.close({
+      const payload: any = {
         ...this.form.value,
         productoId: this.data.producto.id
-      });
+      };
+      
+      if (payload.tipo !== 'ENTRADA') {
+        delete payload.nuevoPrecioCompra;
+        delete payload.nuevoPrecioVenta;
+      }
+      
+      this.dialogRef.close(payload);
     }
   }
 }

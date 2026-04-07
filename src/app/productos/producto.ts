@@ -12,8 +12,10 @@ export interface Producto {
   stockActual: number;
   stockMinimo: number;
   activo: boolean;
+  categoriaId?: number;
   categoriaNombre?: string;
   categoria?: { id: number; nombre: string };
+  imagenUrl?: string;
 }
 
 @Injectable({
