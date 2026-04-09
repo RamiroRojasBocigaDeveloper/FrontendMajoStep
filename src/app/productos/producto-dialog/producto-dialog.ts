@@ -10,7 +10,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CategoriaService, Categoria } from '../../categorias/categoria';
 import { Producto } from '../producto';
 import { CloudinaryService } from '../../cloudinary.service';
-
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-producto-dialog',
@@ -24,7 +24,8 @@ import { CloudinaryService } from '../../cloudinary.service';
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
-    MatSlideToggleModule
+    MatSlideToggleModule,
+    MatIconModule
   ],
   template: `
     <h2 mat-dialog-title>{{ data ? 'Editar Producto' : 'Nuevo Producto' }}</h2>
@@ -33,10 +34,19 @@ import { CloudinaryService } from '../../cloudinary.service';
         <div class="form-grid">
           
           <div class="image-upload-container">
-            <label>Imagen del Producto</label>
-            <input type="file" (change)="onFileSelected($event)" accept="image/*">
-            <div *ngIf="uploading">Subiendo imagen...</div>
-            <img *ngIf="form.get('imagenUrl')?.value" [src]="form.get('imagenUrl')?.value" class="preview-img">
+            <input type="file" #fileInput (change)="onFileSelected($event)" accept="image/*" capture="environment" style="display: none;">
+            
+            <div class="image-preview" *ngIf="form.get('imagenUrl')?.value">
+              <img [src]="form.get('imagenUrl')?.value" class="preview-img">
+            </div>
+
+            <button mat-stroked-button color="primary" type="button" (click)="fileInput.click()" [disabled]="uploading" class="upload-btn">
+              <mat-icon>{{ form.get('imagenUrl')?.value ? 'cameraswitch' : 'add_a_photo' }}</mat-icon> 
+              {{ form.get('imagenUrl')?.value ? 'Cambiar Foto / Tomar Otra' : 'Tomar Foto / Subir Imagen' }}
+            </button>
+            <div *ngIf="uploading" class="uploading-text">
+              <mat-icon class="spinner">sync</mat-icon> Subiendo imagen...
+            </div>
           </div>
 
           <mat-form-field appearance="outline">
@@ -96,8 +106,13 @@ import { CloudinaryService } from '../../cloudinary.service';
   styles: [`
     .form-grid { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .image-upload-container { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-    .preview-img { max-width: 150px; border-radius: 8px; border: 1px solid #ccc; }
+    .image-upload-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; align-items: center; background: rgba(216, 27, 96, 0.03); padding: 16px; border-radius: 16px; border: 1px dashed var(--primary-pink); }
+    .image-preview { width: 100%; display: flex; justify-content: center; }
+    .preview-img { max-width: 150px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 2px solid white; object-fit: cover; }
+    .upload-btn { width: 100%; font-weight: 600; padding: 6px 0; border-width: 2px; }
+    .uploading-text { display: flex; align-items: center; gap: 8px; color: var(--primary-pink); font-weight: 500; font-size: 14px; margin-top: 4px; }
+    .spinner { animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
   `]
 })
 export class ProductoDialog implements OnInit {
