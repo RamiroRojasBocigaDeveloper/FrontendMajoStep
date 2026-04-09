@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatCardModule } from '@angular/material/card';
@@ -8,7 +8,9 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { ProductoService, Producto } from '../productos/producto';
+import { CategoriaService, Categoria } from '../categorias/categoria';
 import { MovimientoInventarioService } from './inventario';
 import { InventarioDialog } from './inventario-dialog/inventario-dialog';
 import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
@@ -24,24 +26,36 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
     MatIconModule,
     MatChipsModule,
     MatDialogModule,
-    MatSelectModule
+    MatSelectModule,
+    MatFormFieldModule
   ],
   template: `
     <mat-card class="header-card">
-      <div class="header-content">
+      <div class="header-content" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <div class="title-group">
           <h1>Inventario de Productos</h1>
           <p>Control de stock, precios y referencias de tu calzado</p>
         </div>
-        <button mat-fab color="primary" (click)="abrirDialogoProducto()" title="Nuevo Producto">
-          <mat-icon>add</mat-icon>
-        </button>
+        <div class="actions-group" style="display: flex; gap: 16px; align-items: center;">
+          <mat-form-field appearance="outline" class="categoria-filter">
+            <mat-label>Filtrar por Categoría</mat-label>
+            <mat-select (selectionChange)="categoriaSeleccionada.set($event.value)">
+              <mat-option [value]="null">Todas</mat-option>
+              <mat-option *ngFor="let cat of categorias()" [value]="cat.id">
+                {{ cat.nombre }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-fab color="primary" (click)="abrirDialogoProducto()" style="margin-top: -15px;" title="Nuevo Producto">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
       </div>
     </mat-card>
 
     <mat-card class="luxury-card">
       <mat-card-content>
-        <table mat-table [dataSource]="productos()" class="full-width">
+        <table mat-table [dataSource]="productosFiltrados()" class="full-width">
           <ng-container matColumnDef="referencia">
             <th mat-header-cell *matHeaderCellDef> Referencia </th>
             <td mat-cell *matCellDef="let p"> <code>{{p.referencia}}</code> </td>
@@ -127,6 +141,12 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
       font-weight: 800;
       color: var(--dark-text);
     }
+    .categoria-filter {
+      width: 200px;
+    }
+    ::ng-deep .categoria-filter .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
     .luxury-card {
       border-radius: 20px;
       box-shadow: var(--luxury-shadow);
@@ -194,16 +214,38 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
 export class Inventarios implements OnInit {
   private productoService = inject(ProductoService);
   private inventarioService = inject(MovimientoInventarioService);
+  private categoriaService = inject(CategoriaService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
   productos = signal<Producto[]>([]);
+  categorias = signal<Categoria[]>([]);
+  categoriaSeleccionada = signal<number | null>(null);
+
+  productosFiltrados = computed(() => {
+    const prods = this.productos();
+    const catId = this.categoriaSeleccionada();
+    if (catId === null) return prods;
+    return prods.filter(p => {
+      const pCatId = p.categoriaId ?? p.categoria?.id;
+      return pCatId === catId;
+    });
+  });
+
   loading = false;
   displayedColumns = ['referencia', 'nombre', 'categoria', 'precio', 'stock', 'estado', 'acciones'];
 
 
   ngOnInit() {
+    this.cargarCategorias();
     this.cargarProductos();
+  }
+
+  cargarCategorias() {
+    this.categoriaService.obtenerTodas().subscribe({
+      next: (data) => this.categorias.set(data),
+      error: () => console.error('Error al cargar categorías')
+    });
   }
 
   cargarProductos() {
