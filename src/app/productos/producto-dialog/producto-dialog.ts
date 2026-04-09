@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CategoriaService, Categoria } from '../../categorias/categoria';
 import { Producto } from '../producto';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { CloudinaryService } from '../../cloudinary.service';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -119,6 +120,7 @@ export class ProductoDialog implements OnInit {
   private fb = inject(FormBuilder);
   private categoriaService = inject(CategoriaService);
   private cloudinaryService = inject(CloudinaryService);
+  private snackBar = inject(MatSnackBar);
   dialogRef = inject(MatDialogRef<ProductoDialog>);
   data = inject(MAT_DIALOG_DATA);
 
@@ -155,12 +157,18 @@ export class ProductoDialog implements OnInit {
       this.uploading = true;
       this.cloudinaryService.uploadImage(file).subscribe({
         next: (res: any) => {
-          this.form.patchValue({ imagenUrl: res.url });
+          const url = res.secure_url || res.url;
+          this.form.patchValue({ imagenUrl: url });
           this.uploading = false;
+          this.snackBar.open('¡Imagen subida a la nube correctamente!', 'Cerrar', { duration: 3000 });
         },
         error: (err) => {
           console.error('Error al subir imagen', err);
           this.uploading = false;
+          let msj = 'Hubo un error al subir la imagen. Intenta de nuevo.';
+          if (err.status === 403 || err.status === 401) msj = 'No tienes permiso para subir fotos.';
+          else if (err.status === 500) msj = 'Error en el servidor de Cloudinary (Verifica las credenciales).';
+          this.snackBar.open(msj, 'Cerrar', { duration: 5000 });
         }
       });
     }
