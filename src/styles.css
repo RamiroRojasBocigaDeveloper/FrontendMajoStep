@@ -327,3 +327,51 @@ mat-card.total-card,
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-pink);
 }
+
+/* =========================================================
+   RESPONSIVE DESIGN (SOLO CONSULTA / MOBILE FIXES)
+   ========================================================= */
+@media (max-width: 768px) {
+  /* Hacer que el contenedor de las tarjetas pueda hacer scroll horizontal */
+  mat-card-content, .mat-mdc-card-content {
+    overflow-x: auto !important;
+    padding-bottom: 10px !important; /* Espacio para la barra de scroll */
+  }
+
+  /* Forzar un ancho mínimo a las tablas para que no se apachurren; esto obligará el scroll horizontal */
+  table.mat-mdc-table {
+    min-width: 700px !important; 
+  }
+
+  /* Cabeceras: Apilar elementos en móviles */
+  .header-content {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .header-content .actions-group {
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+  }
+
+  /* Ajustar botones y campos en móvil */
+  .header-content button, .header-content .mat-mdc-form-field {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* Reducir márgenes de tarjetas en móviles */
+  .header-card, .luxury-card {
+    margin: 10px !important;
+    padding: 15px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Reducir tamaño de fuente de cabeceras en móviles */
+  h1 {
+    font-size: 22px !important;
+  }
+}
