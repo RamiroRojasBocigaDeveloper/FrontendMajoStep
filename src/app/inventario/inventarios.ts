@@ -9,11 +9,13 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProductoService, Producto } from '../productos/producto';
 import { CategoriaService, Categoria } from '../categorias/categoria';
 import { MovimientoInventarioService } from './inventario';
 import { InventarioDialog } from './inventario-dialog/inventario-dialog';
 import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
+import { ImagePreviewDialog } from '../shared/image-preview-dialog';
 
 @Component({
   selector: 'app-inventarios',
@@ -27,7 +29,8 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
     MatChipsModule,
     MatDialogModule,
     MatSelectModule,
-    MatFormFieldModule
+    MatFormFieldModule,
+    MatTooltipModule
   ],
   template: `
     <mat-card class="header-card">
@@ -65,7 +68,7 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
             <th mat-header-cell *matHeaderCellDef> Nombre </th>
             <td mat-cell *matCellDef="let p">
               <div class="prod-cell">
-                <img *ngIf="p.imagenUrl" [src]="p.imagenUrl" class="thumb">
+                <img *ngIf="p.imagenUrl" [src]="p.imagenUrl" class="thumb" (click)="abrirImagen(p.imagenUrl)" matTooltip="Ver foto ampliada">
                 <mat-icon *ngIf="!p.imagenUrl" class="thumb-placeholder">image</mat-icon>
                 <span>{{p.nombre}}</span>
               </div>
@@ -205,7 +208,8 @@ import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
       font-family: 'JetBrains Mono', monospace;
     }
     .prod-cell { display: flex; align-items: center; gap: 10px; }
-    .thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+    .thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; cursor: pointer; transition: transform 0.2s; border: 1px solid #eee; }
+    .thumb:hover { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
     .thumb-placeholder { width: 40px; height: 40px; font-size: 40px; color: #ccc; }
     .action-buttons-group { display: flex; gap: 8px; flex-wrap: wrap; }
     .action-buttons-group button { min-width: 140px; font-weight: 600; letter-spacing: 0.5px; border-width: 2px; }
@@ -259,6 +263,16 @@ export class Inventarios implements OnInit {
         this.snackBar.open('Error al cargar el inventario', 'Cerrar');
         this.loading = false;
       }
+    });
+  }
+
+  abrirImagen(url: string) {
+    if (!url) return;
+    this.dialog.open(ImagePreviewDialog, {
+      data: url,
+      panelClass: 'image-preview-dialog-panel',
+      maxWidth: '90vw',
+      maxHeight: '90vh'
     });
   }
 
