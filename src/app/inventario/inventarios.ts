@@ -75,6 +75,13 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="talla">
+            <th mat-header-cell *matHeaderCellDef> Talla </th>
+            <td mat-cell *matCellDef="let p"> 
+              <span class="talla-badge">{{p.talla || 'N/A'}}</span>
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="categoria">
             <th mat-header-cell *matHeaderCellDef> Categoría </th>
             <td mat-cell *matCellDef="let p"> 
@@ -211,6 +218,14 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
     .thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; cursor: pointer; transition: transform 0.2s; border: 1px solid #eee; }
     .thumb:hover { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
     .thumb-placeholder { width: 40px; height: 40px; font-size: 40px; color: #ccc; }
+    .talla-badge {
+      background: #f3e5f5;
+      color: #7b1fa2;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+    }
     .action-buttons-group { display: flex; gap: 8px; flex-wrap: wrap; }
     .action-buttons-group button { min-width: 140px; font-weight: 600; letter-spacing: 0.5px; border-width: 2px; }
   `]
@@ -237,7 +252,7 @@ export class Inventarios implements OnInit {
   });
 
   loading = false;
-  displayedColumns = ['referencia', 'nombre', 'categoria', 'precio', 'stock', 'estado', 'acciones'];
+  displayedColumns = ['referencia', 'nombre', 'talla', 'categoria', 'precio', 'stock', 'estado', 'acciones'];
 
 
   ngOnInit() {

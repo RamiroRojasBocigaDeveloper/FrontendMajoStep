@@ -16,6 +16,8 @@ export interface Producto {
   categoriaNombre?: string;
   categoria?: { id: number; nombre: string };
   imagenUrl?: string;
+  talla?: string;
+  descripcion?: string;
 }
 
 @Injectable({

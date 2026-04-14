@@ -95,6 +95,19 @@ import { MatIconModule } from '@angular/material/icon';
             </mat-form-field>
           </div>
 
+          <div class="row">
+            <mat-form-field appearance="outline">
+              <mat-label>Talla / Medida</mat-label>
+              <input matInput formControlName="talla" placeholder="Ej: 36-39 o 38">
+              <mat-icon matSuffix>straighten</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Descripción Corta</mat-label>
+              <textarea matInput formControlName="descripcion" placeholder="Detalles del material, estilo, etc." rows="2"></textarea>
+            </mat-form-field>
+          </div>
+
           <mat-slide-toggle formControlName="activo">Producto Activo</mat-slide-toggle>
         </div>
       </form>
@@ -136,7 +149,9 @@ export class ProductoDialog implements OnInit {
     stockActual: [this.data?.stockActual || 0, [Validators.required, Validators.min(0)]],
     stockMinimo: [this.data?.stockMinimo || 1, [Validators.required, Validators.min(0)]],
     activo: [this.data?.activo ?? true],
-    imagenUrl: [this.data?.imagenUrl || '']
+    imagenUrl: [this.data?.imagenUrl || ''],
+    talla: [this.data?.talla || ''],
+    descripcion: [this.data?.descripcion || '']
   });
 
   ngOnInit() {
