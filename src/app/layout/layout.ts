@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -100,36 +100,36 @@ export class ConfirmLogoutDialog {
     <mat-sidenav-container class="sidenav-container">
       <mat-sidenav #drawer class="sidenav" fixedInViewport
           [attr.role]="'navigation'"
-          [mode]="'side'"
-          [opened]="true">
+          [mode]="isMobile ? 'over' : 'side'"
+          [opened]="!isMobile">
         <mat-toolbar color="primary">Menú</mat-toolbar>
         <mat-nav-list>
-          <a mat-list-item routerLink="/ventas" routerLinkActive="active-link">
+          <a mat-list-item routerLink="/ventas" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>shopping_cart</mat-icon>
             <span matListItemTitle>Ventas (TPV)</span>
           </a>
-          <a mat-list-item routerLink="/sesiones-trabajo" routerLinkActive="active-link">
+          <a mat-list-item routerLink="/sesiones-trabajo" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>point_of_sale</mat-icon>
             <span matListItemTitle>Sesión / Caja</span>
           </a>
-          <a mat-list-item routerLink="/inventario" routerLinkActive="active-link">
+          <a mat-list-item routerLink="/inventario" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>inventory_2</mat-icon>
             <span matListItemTitle>Inventario</span>
           </a>
 
-          <a mat-list-item routerLink="/categorias" routerLinkActive="active-link">
+          <a mat-list-item routerLink="/categorias" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>category</mat-icon>
             <span matListItemTitle>Categorías</span>
           </a>
-          <a mat-list-item routerLink="/gastos" routerLinkActive="active-link" *ngIf="isAdmin() || isVendedor()">
+          <a mat-list-item routerLink="/gastos" routerLinkActive="active-link" *ngIf="isAdmin() || isVendedor()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>payments</mat-icon>
             <span matListItemTitle>Gastos</span>
           </a>
-          <a mat-list-item routerLink="/reportes" routerLinkActive="active-link" *ngIf="isAdmin()">
+          <a mat-list-item routerLink="/reportes" routerLinkActive="active-link" *ngIf="isAdmin()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>assessment</mat-icon>
             <span matListItemTitle>Reportes</span>
           </a>
-          <a mat-list-item routerLink="/usuarios" routerLinkActive="active-link" *ngIf="isAdmin()">
+          <a mat-list-item routerLink="/usuarios" routerLinkActive="active-link" *ngIf="isAdmin()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>people</mat-icon>
             <span matListItemTitle>Usuarios</span>
           </a>
@@ -141,7 +141,7 @@ export class ConfirmLogoutDialog {
           <button type="button" aria-label="Toggle sidenav" mat-icon-button (click)="drawer.toggle()">
             <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
           </button>
-          <span class="toolbar-title">Chancla Lite <span class="user-badge">{{ getNombreUsuario() }}</span></span>
+          <span class="toolbar-title">MajoStep <span class="user-badge">{{ getNombreUsuario() }}</span></span>
           <span class="spacer"></span>
           <button mat-icon-button (click)="logout()" title="Cerrar Sesión">
             <mat-icon>logout</mat-icon>
@@ -249,12 +249,29 @@ export class ConfirmLogoutDialog {
     }
   `]
 })
-export class Layout {
+export class Layout implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private sesionService = inject(SesionTrabajoService);
   private snackBar = inject(MatSnackBar);
+
+  isMobile = false;
+
+  @HostListener('window:resize')
+  onResize() {
+    this.isMobile = window.innerWidth <= 768;
+  }
+
+  ngOnInit() {
+    this.isMobile = window.innerWidth <= 768;
+  }
+
+  cerrarMenuSiEsCelular(drawer: any) {
+    if (this.isMobile) {
+      drawer.close();
+    }
+  }
 
   isAdmin(): boolean {
     return this.authService.isAdmin();
