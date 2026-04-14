@@ -141,7 +141,7 @@ export class ConfirmLogoutDialog {
           <button type="button" aria-label="Toggle sidenav" mat-icon-button (click)="drawer.toggle()">
             <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
           </button>
-          <span class="toolbar-title">Chancla Lite <span class="user-badge">{{ getNombreUsuario() }}</span></span>
+          <span class="toolbar-title">MajoStep <span class="user-badge">{{ getNombreUsuario() }}</span></span>
           <span class="spacer"></span>
           <button mat-icon-button (click)="logout()" title="Cerrar Sesión">
             <mat-icon>logout</mat-icon>
