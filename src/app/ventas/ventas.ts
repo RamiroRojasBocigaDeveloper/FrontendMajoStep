@@ -79,8 +79,8 @@ interface ItemCarrito extends Producto {
                     [disabled]="producto.stockActual <= 0"
                     [class.sin-stock]="producto.stockActual <= 0">
                     <div class="product-option">
-                      <span class="prod-name">{{producto.nombre}}</span>
-                      <span class="prod-ref">{{producto.referencia}}</span>
+                      <span class="prod-name">{{producto.referencia}}</span>
+                      <span class="prod-ref">{{producto.nombre}}</span>
                       <span class="prod-price">{{producto.precioVenta | currency:'USD'}}</span>
                       <span class="stock-badge" [class.badge-ok]="producto.stockActual > 5" [class.badge-low]="producto.stockActual > 0 && producto.stockActual <= 5" [class.badge-empty]="producto.stockActual <= 0">
                         {{ producto.stockActual <= 0 ? 'Sin stock' : 'Stock: ' + producto.stockActual }}

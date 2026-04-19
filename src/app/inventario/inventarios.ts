@@ -37,15 +37,15 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
       <div class="header-content" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <div class="title-group">
           <h1>Inventario de Productos</h1>
-          <p>Control de stock, precios y referencias de tu calzado</p>
+          <p>Control de stock, precios y referencias de tu calzado - {{ productos().length }} productos en total</p>
         </div>
         <div class="actions-group" style="display: flex; gap: 16px; align-items: center;">
           <mat-form-field appearance="outline" class="categoria-filter">
             <mat-label>Filtrar por Categoría</mat-label>
             <mat-select (selectionChange)="categoriaSeleccionada.set($event.value)">
-              <mat-option [value]="null">Todas</mat-option>
+              <mat-option [value]="null">Todas ({{ productos().length }})</mat-option>
               <mat-option *ngFor="let cat of categorias()" [value]="cat.id">
-                {{ cat.nombre }}
+                {{ cat.nombre }} ({{ getCantidadPorCategoria(cat.id) }})
               </mat-option>
             </mat-select>
           </mat-form-field>
@@ -152,7 +152,7 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
       color: var(--dark-text);
     }
     .categoria-filter {
-      width: 200px;
+      width: 300px;
     }
     ::ng-deep .categoria-filter .mat-mdc-form-field-subscript-wrapper {
       display: none;
@@ -244,12 +244,20 @@ export class Inventarios implements OnInit {
   productosFiltrados = computed(() => {
     const prods = this.productos();
     const catId = this.categoriaSeleccionada();
-    if (catId === null) return prods;
+    if (catId === null || catId === undefined) return prods;
     return prods.filter(p => {
       const pCatId = p.categoriaId ?? p.categoria?.id;
-      return pCatId === catId;
+      return pCatId == catId; // Usar == en lugar de === para evitar problemas de tipo string/number
     });
   });
+
+  getCantidadPorCategoria(catId: number | undefined): number {
+    if (catId === undefined) return 0;
+    return this.productos().filter(p => {
+      const pCatId = p.categoriaId ?? p.categoria?.id;
+      return pCatId == catId;
+    }).length;
+  }
 
   loading = false;
   displayedColumns = ['referencia', 'nombre', 'talla', 'categoria', 'precio', 'stock', 'estado', 'acciones'];
