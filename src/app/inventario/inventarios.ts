@@ -10,6 +10,8 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatInputModule } from '@angular/material/input';
+import { FormsModule } from '@angular/forms';
 import { ProductoService, Producto } from '../productos/producto';
 import { CategoriaService, Categoria } from '../categorias/categoria';
 import { MovimientoInventarioService } from './inventario';
@@ -22,6 +24,7 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatTableModule,
     MatCardModule,
     MatButtonModule,
@@ -30,7 +33,8 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
     MatDialogModule,
     MatSelectModule,
     MatFormFieldModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatInputModule
   ],
   template: `
     <mat-card class="header-card">
@@ -54,6 +58,17 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
           </button>
         </div>
       </div>
+    </mat-card>
+
+    <mat-card class="luxury-card search-bar-card">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Buscar por nombre o referencia...</mat-label>
+        <input matInput [ngModel]="terminoBusqueda()" (ngModelChange)="terminoBusqueda.set($event)" placeholder="Ej: Sandalia, CHV-001...">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+      <span class="results-count" *ngIf="terminoBusqueda()">
+        {{ productosFiltrados().length }} resultado(s) encontrado(s)
+      </span>
     </mat-card>
 
     <mat-card class="luxury-card">
@@ -154,6 +169,23 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
     .categoria-filter {
       width: 300px;
     }
+    .search-bar-card {
+      margin-bottom: 16px;
+      padding: 12px 16px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .search-field {
+      flex: 1;
+      width: 100%;
+    }
+    .results-count {
+      font-size: 13px;
+      color: var(--primary-pink);
+      font-weight: 600;
+      white-space: nowrap;
+    }
     ::ng-deep .categoria-filter .mat-mdc-form-field-subscript-wrapper {
       display: none;
     }
@@ -241,15 +273,29 @@ export class Inventarios implements OnInit {
   categorias = signal<Categoria[]>([]);
   categoriaSeleccionada = signal<number | null>(null);
 
+  terminoBusqueda = signal<string>('');
+
   productosFiltrados = computed(() => {
     const prods = this.productos();
     const catId = this.categoriaSeleccionada();
-    if (catId === null || catId === undefined) return prods;
+    const term = this.terminoBusqueda().toLowerCase().trim();
+
     return prods.filter(p => {
-      const pCatId = p.categoriaId ?? p.categoria?.id;
-      return pCatId == catId; // Usar == en lugar de === para evitar problemas de tipo string/number
+      const pasaCategoria = (catId === null || catId === undefined)
+        ? true
+        : (p.categoriaId ?? p.categoria?.id) == catId;
+
+      const pasaBusqueda = term.length < 2
+        ? true
+        : (p.nombre?.toLowerCase().includes(term) || p.referencia?.toLowerCase().includes(term));
+
+      return pasaCategoria && pasaBusqueda;
     });
   });
+
+  onBusquedaChange(value: string) {
+    this.terminoBusqueda.set(value);
+  }
 
   getCantidadPorCategoria(catId: number | undefined): number {
     if (catId === undefined) return 0;
