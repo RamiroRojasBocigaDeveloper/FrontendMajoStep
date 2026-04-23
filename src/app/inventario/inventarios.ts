@@ -75,12 +75,14 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
       <mat-card-content>
         <table mat-table [dataSource]="productosFiltrados()" class="full-width">
           <ng-container matColumnDef="referencia">
-            <th mat-header-cell *matHeaderCellDef> Referencia </th>
-            <td mat-cell *matCellDef="let p"> <code>{{p.referencia}}</code> </td>
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Referencia </th>
+            <td mat-cell *matCellDef="let p" class="text-center"> 
+              <span class="ref-text">{{p.referencia}}</span>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="nombre">
-            <th mat-header-cell *matHeaderCellDef> Nombre </th>
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Nombre </th>
             <td mat-cell *matCellDef="let p">
               <div class="prod-cell">
                 <img *ngIf="p.imagenUrl" [src]="p.imagenUrl" class="thumb" (click)="abrirImagen(p.imagenUrl)" matTooltip="Ver foto ampliada">
@@ -91,29 +93,29 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
           </ng-container>
 
           <ng-container matColumnDef="talla">
-            <th mat-header-cell *matHeaderCellDef> Talla </th>
-            <td mat-cell *matCellDef="let p"> 
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Talla </th>
+            <td mat-cell *matCellDef="let p" class="text-center"> 
               <span class="talla-badge">{{p.talla || 'N/A'}}</span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="categoria">
-            <th mat-header-cell *matHeaderCellDef> Categoría </th>
-            <td mat-cell *matCellDef="let p"> 
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Categoría </th>
+            <td mat-cell *matCellDef="let p" class="text-center"> 
               <mat-chip-set>
-                <mat-chip>{{p.categoriaNombre || 'Sin Categoría'}}</mat-chip>
+                <mat-chip [class]="getCategoriaClass(p.categoriaNombre)">{{p.categoriaNombre || 'Sin Categoría'}}</mat-chip>
               </mat-chip-set>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="precio">
-            <th mat-header-cell *matHeaderCellDef> Precio </th>
-            <td mat-cell *matCellDef="let p"> {{p.precioVenta | currency:'USD'}} </td>
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Precio </th>
+            <td mat-cell *matCellDef="let p" class="text-center"> {{p.precioVenta | currency:'USD':'symbol':'1.0-0'}} </td>
           </ng-container>
 
           <ng-container matColumnDef="stock">
-            <th mat-header-cell *matHeaderCellDef> Stock </th>
-            <td mat-cell *matCellDef="let p">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Stock </th>
+            <td mat-cell *matCellDef="let p" class="text-center">
               <span [class.stock-low]="p.stockActual <= 5">
                 {{p.stockActual}}
               </span>
@@ -121,8 +123,8 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
           </ng-container>
 
           <ng-container matColumnDef="estado">
-            <th mat-header-cell *matHeaderCellDef> Estado </th>
-            <td mat-cell *matCellDef="let p">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Estado </th>
+            <td mat-cell *matCellDef="let p" class="text-center">
               <span *ngIf="p.stockActual <= 0" class="status-out-of-stock">Agotado</span>
               <span *ngIf="p.stockActual > 0" [class.status-active]="p.activo" [class.status-inactive]="!p.activo">
                 {{ p.activo ? 'Disponible' : 'Inactivo' }}
@@ -131,8 +133,8 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
           </ng-container>
 
           <ng-container matColumnDef="acciones">
-            <th mat-header-cell *matHeaderCellDef> Acciones </th>
-            <td mat-cell *matCellDef="let p">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Acciones </th>
+            <td mat-cell *matCellDef="let p" class="text-center">
               <div class="action-buttons-group">
                 <button mat-stroked-button color="primary" (click)="abrirDialogoMovimiento(p)">
                   <mat-icon>inventory_2</mat-icon> Ingresar Stock
@@ -238,8 +240,12 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
     ::ng-deep th.mat-mdc-header-cell {
       background: var(--bg-main) !important;
       color: var(--primary-pink) !important;
-      font-weight: 700 !important;
+      font-weight: 800 !important;
+      text-align: center !important;
+      font-size: 15px !important;
     }
+    .text-center { text-align: center !important; }
+    ::ng-deep .mat-mdc-chip-set { justify-content: center; }
     code {
       background: #f5f5f5;
       padding: 2px 6px;
@@ -253,10 +259,23 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
     .talla-badge {
       background: #f3e5f5;
       color: #7b1fa2;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 13px;
+      padding: 6px 16px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 16px;
+      display: inline-block;
+      box-shadow: 0 2px 4px rgba(123, 31, 162, 0.1);
+    }
+    .cat-nina { background-color: #f48fb1 !important; color: #880e4f !important; font-weight: 800 !important; }
+    .cat-mujer { background-color: #d81b60 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .cat-nino { background-color: #03a9f4 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .cat-hombre { background-color: #0d47a1 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .ref-text { 
+      color: var(--primary-pink);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-family: inherit;
+      font-size: 15px;
     }
     .action-buttons-group { display: flex; gap: 8px; flex-wrap: wrap; }
     .action-buttons-group button { min-width: 140px; font-weight: 600; letter-spacing: 0.5px; border-width: 2px; }
@@ -295,6 +314,16 @@ export class Inventarios implements OnInit {
 
   onBusquedaChange(value: string) {
     this.terminoBusqueda.set(value);
+  }
+
+  getCategoriaClass(nombre: string | undefined): string {
+    if (!nombre) return '';
+    const n = nombre.toLowerCase();
+    if (n.includes('niña')) return 'cat-nina';
+    if (n.includes('mujer')) return 'cat-mujer';
+    if (n.includes('niño')) return 'cat-nino';
+    if (n.includes('hombre')) return 'cat-hombre';
+    return '';
   }
 
   getCantidadPorCategoria(catId: number | undefined): number {
