@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { UsuarioService, Usuario } from './usuario';
 import { UsuarioDialog } from './usuario-dialog/usuario-dialog';
 import { FormsModule } from '@angular/forms';
@@ -65,7 +66,8 @@ export class ResetPasswordDialog {
     MatButtonModule,
     MatIconModule,
     MatChipsModule,
-    MatDialogModule
+    MatDialogModule,
+    MatTooltipModule
   ],
   template: `
     <mat-card class="header-card">
@@ -84,55 +86,62 @@ export class ResetPasswordDialog {
       <mat-card-content>
         <table mat-table [dataSource]="usuarios()" class="full-width">
           <ng-container matColumnDef="nombre">
-            <th mat-header-cell *matHeaderCellDef> Nombre </th>
-            <td mat-cell *matCellDef="let u"> {{u.nombre}} </td>
-          </ng-container>
-
-          <ng-container matColumnDef="email">
-            <th mat-header-cell *matHeaderCellDef> Email </th>
-            <td mat-cell *matCellDef="let u"> {{u.email}} </td>
-          </ng-container>
-
-          <ng-container matColumnDef="rol">
-            <th mat-header-cell *matHeaderCellDef> Rol </th>
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Nombre </th>
             <td mat-cell *matCellDef="let u">
+              <div class="user-cell">
+                <mat-icon class="user-avatar">account_circle</mat-icon>
+                <span>{{u.nombre}}</span>
+              </div>
+            </td>
+          </ng-container>
+ 
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Email </th>
+            <td mat-cell *matCellDef="let u" class="text-center"> {{u.email}} </td>
+          </ng-container>
+ 
+          <ng-container matColumnDef="rol">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Rol </th>
+            <td mat-cell *matCellDef="let u" class="text-center">
               <mat-chip-set>
-                <mat-chip [color]="u.rolNombre === 'ADMINISTRADOR' ? 'warn' : 'primary'">
+                <mat-chip [class]="getRolClass(u.rolNombre)">
                   {{ u.rolNombre || 'S/R' }}
                 </mat-chip>
               </mat-chip-set>
             </td>
           </ng-container>
-
+ 
           <ng-container matColumnDef="estado">
-            <th mat-header-cell *matHeaderCellDef> Estado </th>
-            <td mat-cell *matCellDef="let u">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Estado </th>
+            <td mat-cell *matCellDef="let u" class="text-center">
               <span [class.status-active]="u.activo" [class.status-inactive]="!u.activo">
                 {{ u.activo ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
           </ng-container>
-
+ 
           <ng-container matColumnDef="sueldo">
-            <th mat-header-cell *matHeaderCellDef> Sueldo Diario </th>
-            <td mat-cell *matCellDef="let u"> {{u.sueldoDiario | currency:'USD'}} </td>
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Sueldo Diario </th>
+            <td mat-cell *matCellDef="let u" class="text-center"> {{u.sueldoDiario | currency:'USD':'symbol':'1.0-0'}} </td>
           </ng-container>
-
+ 
           <ng-container matColumnDef="acciones">
-            <th mat-header-cell *matHeaderCellDef> Acciones </th>
-            <td mat-cell *matCellDef="let u">
-              <button mat-icon-button color="accent" (click)="abrirDialogo(u)">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button mat-icon-button [color]="u.activo ? 'warn' : 'primary'" (click)="toggleEstado(u)">
-                <mat-icon>{{ u.activo ? 'person_off' : 'person' }}</mat-icon>
-              </button>
-              <button mat-icon-button color="primary" (click)="resetearPassword(u)" title="Resetear Contraseña">
-                <mat-icon>lock_reset</mat-icon>
-              </button>
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Acciones </th>
+            <td mat-cell *matCellDef="let u" class="text-center">
+              <div class="action-buttons-group">
+                <button mat-icon-button color="accent" (click)="abrirDialogo(u)" matTooltip="Editar Usuario">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button [color]="u.activo ? 'warn' : 'primary'" (click)="toggleEstado(u)" [matTooltip]="u.activo ? 'Desactivar' : 'Activar'">
+                  <mat-icon>{{ u.activo ? 'person_off' : 'person' }}</mat-icon>
+                </button>
+                <button mat-icon-button color="primary" (click)="resetearPassword(u)" matTooltip="Resetear Contraseña">
+                  <mat-icon>lock_reset</mat-icon>
+                </button>
+              </div>
             </td>
           </ng-container>
-
+ 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
         </table>
@@ -146,9 +155,27 @@ export class ResetPasswordDialog {
   styles: [`
     .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .full-width { width: 100%; }
-    .status-active { color: #43a047; font-weight: bold; }
-    .status-inactive { color: #f44336; font-weight: bold; }
+    .status-active { color: #2e7d32; font-weight: 800; background: #e8f5e9; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+    .status-inactive { color: #c62828; font-weight: 800; background: #ffebee; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
     .loading-state { padding: 40px; text-align: center; color: var(--subtle-text); }
+    ::ng-deep th.mat-mdc-header-cell {
+      background: var(--bg-main) !important;
+      color: var(--primary-pink) !important;
+      font-weight: 800 !important;
+      text-align: center !important;
+      font-size: 15px !important;
+    }
+    .text-center { text-align: center !important; }
+    ::ng-deep .mat-mdc-chip-set { justify-content: center; }
+    .user-cell { display: flex; align-items: center; gap: 12px; }
+    .user-avatar { color: var(--primary-pink); font-size: 32px; width: 32px; height: 32px; }
+    .action-buttons-group { display: flex; gap: 4px; justify-content: center; }
+    
+    /* Roles Styles */
+    .rol-admin { background-color: #d81b60 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .rol-vendedor { background-color: #1976d2 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .rol-jefe { background-color: #7b1fa2 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .rol-default { background-color: #757575 !important; color: #ffffff !important; font-weight: 700 !important; }
   `]
 })
 export class Usuarios implements OnInit {
@@ -211,6 +238,15 @@ export class Usuarios implements OnInit {
         }
       });
     }
+  }
+
+  getRolClass(rolNombre: string | undefined): string {
+    if (!rolNombre) return 'rol-default';
+    const rol = rolNombre.toUpperCase();
+    if (rol === 'ADMINISTRADOR') return 'rol-admin';
+    if (rol === 'VENDEDOR') return 'rol-vendedor';
+    if (rol === 'JEFE') return 'rol-jefe';
+    return 'rol-default';
   }
 
   resetearPassword(usuario: Usuario) {

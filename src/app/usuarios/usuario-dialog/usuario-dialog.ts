@@ -44,10 +44,11 @@ import { Usuario } from '../usuario';
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>Rol</mat-label>
+            <mat-label>Rol de Usuario</mat-label>
             <mat-select formControlName="rolId">
               <mat-option [value]="1">Administrador</mat-option>
               <mat-option [value]="2">Vendedor</mat-option>
+              <mat-option [value]="3">Jefe / Supervisor</mat-option>
             </mat-select>
           </mat-form-field>
 
@@ -66,7 +67,9 @@ import { Usuario } from '../usuario';
     </mat-dialog-actions>
   `,
   styles: [`
-    .form-grid { display: flex; flex-direction: column; gap: 12px; padding-top: 10px; }
+    .form-grid { display: flex; flex-direction: column; gap: 16px; padding: 20px 0; }
+    h2 { font-weight: 800; color: var(--primary-pink); }
+    mat-form-field { width: 100%; }
   `]
 })
 export class UsuarioDialog {
@@ -75,13 +78,22 @@ export class UsuarioDialog {
   data = inject(MAT_DIALOG_DATA);
 
   form: FormGroup = this.fb.group({
-    nombre: [this.data?.nombre || '', Validators.required],
+    nombre: [this.data?.nombre || '', [Validators.required, Validators.minLength(3)]],
     email: [this.data?.email || '', [Validators.required, Validators.email]],
-    password: ['', this.data ? [] : [Validators.required]],
-    rolId: [this.data?.rolNombre === 'ADMINISTRADOR' ? 1 : 2, Validators.required],
+    password: ['', this.data ? [] : [Validators.required, Validators.minLength(4)]],
+    rolId: [this.getInitialRolId(), Validators.required],
     sueldoDiario: [this.data?.sueldoDiario || 0, [Validators.required, Validators.min(0)]],
     activo: [this.data?.activo ?? true]
   });
+
+  getInitialRolId(): number {
+    if (!this.data?.rolNombre) return 2; // Default to Vendedor
+    const rol = this.data.rolNombre.toUpperCase();
+    if (rol === 'ADMINISTRADOR') return 1;
+    if (rol === 'VENDEDOR') return 2;
+    if (rol === 'JEFE') return 3;
+    return 2;
+  }
 
   onCancel() { this.dialogRef.close(); }
 

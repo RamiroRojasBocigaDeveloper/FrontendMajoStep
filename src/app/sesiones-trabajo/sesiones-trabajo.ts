@@ -9,6 +9,38 @@ import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angu
 import { SesionTrabajoService, SesionTrabajo, ResumenCierre } from './sesion-trabajo';
 import { AuthService } from '../auth/auth';
 import { finalize } from 'rxjs';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-welcome-dialog',
+  standalone: true,
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule],
+  template: `
+    <div class="welcome-wrapper">
+      <div class="welcome-icon">✨</div>
+      <h2 class="welcome-title">¡Caja Abierta!</h2>
+      <p class="welcome-message">Hoy es un gran día para vender, <br><strong>{{ data.nombre }}</strong></p>
+      
+      <div class="welcome-actions">
+        <button mat-flat-button class="start-selling-btn" color="primary" (click)="dialogRef.close()">
+          <mat-icon>shopping_cart</mat-icon> Empezar a Vender
+        </button>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .welcome-wrapper { padding: 32px; text-align: center; background: linear-gradient(135deg, #ffffff, #fff5f8); border-radius: 20px; }
+    .welcome-icon { font-size: 4rem; margin-bottom: 16px; animation: bounce 2s infinite; }
+    .welcome-title { font-size: 1.8rem; font-weight: 800; color: var(--primary-pink); margin-bottom: 12px; }
+    .welcome-message { font-size: 1.2rem; color: #444; line-height: 1.5; margin-bottom: 32px; }
+    .start-selling-btn { padding: 24px 32px; font-size: 1.1rem; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3); }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  `]
+})
+export class WelcomeDialog {
+  dialogRef = inject(MatDialogRef<WelcomeDialog>);
+  data = inject(MAT_DIALOG_DATA);
+}
 
 @Component({
   selector: 'app-resumen-cierre-dialog',
@@ -123,7 +155,7 @@ export class ResumenCierreDialog {
                 <mat-icon>check_circle</mat-icon>
                 <span>Caja Abierta</span>
               </div>
-              <p><strong>Operador:</strong> {{ sesionActiva()?.nombreUsuario }}</p>
+              <p><strong>Vendedor:</strong> <span class="vendedor-name">{{ sesionActiva()?.nombreUsuario }}</span></p>
               <p><strong>Apertura:</strong> {{ sesionActiva()?.horaInicio | date:'medium' }}</p>
               <p><strong>Estado:</strong> {{ sesionActiva()?.estado }}</p>
               
@@ -149,7 +181,7 @@ export class ResumenCierreDialog {
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="history-card luxury-card">
+      <mat-card class="history-card luxury-card" *ngIf="esAdmin()">
         <mat-card-header>
           <mat-card-title>Mi Historial de Turnos</mat-card-title>
         </mat-card-header>
@@ -192,6 +224,7 @@ export class ResumenCierreDialog {
     .status-indicator mat-icon { font-size: 4rem; width: 4rem; height: 4rem; }
     .active { color: #4caf50; }
     .inactive { color: #f44336; }
+    .vendedor-name { color: var(--primary-pink); font-weight: 800; font-size: 1.1rem; }
     .action-btn { width: 100%; margin-top: 20px; padding: 24px 0; border-radius: 12px; font-size: 1.1rem; font-weight: bold; }
     .popup-btn { background: linear-gradient(135deg, var(--primary-pink), #e91e63); border: none; transition: transform 0.2s; }
     .popup-btn:hover { transform: scale(1.02); }
@@ -201,7 +234,9 @@ export class ResumenCierreDialog {
     .empty-state { text-align: center; padding: 20px; color: #757575; }
     .loading { padding: 40px; color: #999; }
     ::ng-deep th.mat-mdc-header-cell { background: #fafafa !important; font-weight: 700 !important; }
-    @media (max-width: 768px) { .sesion-container { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { 
+      .sesion-container { grid-template-columns: 1fr; } 
+    }
   `]
 })
 export class SesionesTrabajo implements OnInit {
@@ -209,6 +244,7 @@ export class SesionesTrabajo implements OnInit {
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
+  private router = inject(Router);
 
   sesionActiva = signal<SesionTrabajo | null>(null);
   historial = signal<SesionTrabajo[]>([]);
@@ -216,6 +252,10 @@ export class SesionesTrabajo implements OnInit {
 
   private get userId(): number {
     return this.authService.getCurrentUser()?.id || 0;
+  }
+
+  esAdmin(): boolean {
+    return this.authService.isAdmin();
   }
 
   ngOnInit() {
@@ -265,9 +305,23 @@ export class SesionesTrabajo implements OnInit {
     this.loading.set(true);
     this.sesionService.abrirSesion(this.userId).subscribe({
       next: (sesion) => {
-        this.snackBar.open('Caja Abierta Exitosamente', 'OK', { duration: 3000 });
         this.sesionActiva.set(sesion);
-        this.cargarHistorial();
+        this.loading.set(false);
+        
+        // Mostrar Mensaje de Bienvenida Personalizado
+        const welcomeDialog = this.dialog.open(WelcomeDialog, {
+          width: '420px',
+          disableClose: true,
+          data: { nombre: this.authService.getCurrentUser()?.nombre }
+        });
+
+        welcomeDialog.afterClosed().subscribe(() => {
+          this.router.navigate(['/ventas']);
+        });
+
+        if (this.esAdmin()) {
+          this.cargarHistorial();
+        }
       },
       error: (err) => {
         const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
