@@ -128,11 +128,11 @@ export class ConfirmLogoutDialog {
             <mat-icon matListItemIcon>category</mat-icon>
             <span matListItemTitle>Categorías</span>
           </a>
-          <a mat-list-item routerLink="/gastos" routerLinkActive="active-link" *ngIf="isAdmin() || isVendedor()" (click)="cerrarMenuSiEsCelular(drawer)">
+          <a mat-list-item routerLink="/gastos" routerLinkActive="active-link" *ngIf="isAdmin() || isVendedor() || isJefe()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>payments</mat-icon>
             <span matListItemTitle>Gastos</span>
           </a>
-          <a mat-list-item routerLink="/reportes" routerLinkActive="active-link" *ngIf="isAdmin()" (click)="cerrarMenuSiEsCelular(drawer)">
+          <a mat-list-item routerLink="/reportes" routerLinkActive="active-link" *ngIf="isAdmin() || isJefe()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>assessment</mat-icon>
             <span matListItemTitle>Reportes</span>
           </a>
@@ -351,6 +351,10 @@ export class Layout implements OnInit {
 
   isVendedor(): boolean {
     return this.authService.isVendedor();
+  }
+
+  isJefe(): boolean {
+    return this.authService.isJefe();
   }
 
   getNombreUsuario(): string {

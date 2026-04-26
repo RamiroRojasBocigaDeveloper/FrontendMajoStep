@@ -14,6 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { SuccessDialog } from '../shared/success-dialog';
 
 @Component({
   selector: 'app-reset-password-dialog',
@@ -76,7 +77,7 @@ export class ResetPasswordDialog {
           <h1>Gestión de Usuarios</h1>
           <p>Administra los accesos, roles y sueldos de tu equipo de trabajo</p>
         </div>
-        <button mat-fab color="primary" (click)="abrirDialogo()" title="Nuevo Usuario">
+        <button mat-fab color="primary" (click)="crear()" title="Nuevo Usuario">
           <mat-icon>person_add</mat-icon>
         </button>
       </div>
@@ -129,7 +130,7 @@ export class ResetPasswordDialog {
             <th mat-header-cell *matHeaderCellDef class="text-center"> Acciones </th>
             <td mat-cell *matCellDef="let u" class="text-center">
               <div class="action-buttons-group">
-                <button mat-icon-button color="accent" (click)="abrirDialogo(u)" matTooltip="Editar Usuario">
+                <button mat-icon-button color="accent" (click)="actualizar(u)" matTooltip="Editar Usuario">
                   <mat-icon>edit</mat-icon>
                 </button>
                 <button mat-icon-button [color]="u.activo ? 'warn' : 'primary'" (click)="toggleEstado(u)" [matTooltip]="u.activo ? 'Desactivar' : 'Activar'">
@@ -202,29 +203,53 @@ export class Usuarios implements OnInit {
     });
   }
 
-  abrirDialogo(usuario?: Usuario) {
+  actualizar(usuario: Usuario) {
     const dialogRef = this.dialog.open(UsuarioDialog, {
-      width: '450px',
-      data: usuario || null
+      width: '500px',
+      data: usuario
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        if (usuario?.id) {
-          this.usuarioService.actualizar(usuario.id, result).subscribe({
-            next: () => {
-              this.snackBar.open('Usuario actualizado', 'OK');
-              this.cargarUsuarios();
-            }
-          });
-        } else {
-          this.usuarioService.crear(result).subscribe({
-            next: () => {
-              this.snackBar.open('Usuario creado', 'OK');
-              this.cargarUsuarios();
-            }
-          });
-        }
+        this.usuarioService.actualizar(usuario.id!, result).subscribe({
+          next: () => {
+            this.dialog.open(SuccessDialog, {
+              width: '420px',
+              data: { 
+                icon: '👤',
+                title: 'Usuario Actualizado', 
+                message: `Los datos de ${usuario.nombre} se han guardado correctamente.` 
+              }
+            });
+            this.cargarUsuarios();
+          },
+          error: (err) => this.snackBar.open('Error al actualizar', 'Cerrar', { duration: 3000 })
+        });
+      }
+    });
+  }
+
+  crear() {
+    const dialogRef = this.dialog.open(UsuarioDialog, {
+      width: '500px'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.usuarioService.crear(result).subscribe({
+          next: (nuevo) => {
+            this.dialog.open(SuccessDialog, {
+              width: '420px',
+              data: { 
+                icon: '🎉',
+                title: 'Usuario Creado', 
+                message: `El usuario ${nuevo.nombre} ha sido registrado exitosamente.` 
+              }
+            });
+            this.cargarUsuarios();
+          },
+          error: (err) => this.snackBar.open('Error al crear', 'Cerrar', { duration: 3000 })
+        });
       }
     });
   }
@@ -233,7 +258,14 @@ export class Usuarios implements OnInit {
     if (usuario.id) {
       this.usuarioService.cambiarEstado(usuario.id, !usuario.activo).subscribe({
         next: () => {
-          this.snackBar.open('Estado actualizado', 'OK');
+          this.dialog.open(SuccessDialog, {
+            width: '420px',
+            data: { 
+              icon: '🔄',
+              title: 'Estado Cambiado', 
+              message: `El usuario ${usuario.nombre} ahora está ${!usuario.activo ? 'Activo' : 'Inactivo'}.` 
+            }
+          });
           this.cargarUsuarios();
         }
       });
@@ -259,7 +291,14 @@ export class Usuarios implements OnInit {
       if (nuevaPassword && usuario.id) {
         this.usuarioService.resetearPassword(usuario.id, nuevaPassword).subscribe({
           next: () => {
-            this.snackBar.open(`Contraseña de ${usuario.nombre} actualizada con éxito`, 'OK', { duration: 3000 });
+            this.dialog.open(SuccessDialog, {
+              width: '420px',
+              data: { 
+                icon: '🔐',
+                title: 'Contraseña Actualizada', 
+                message: `La contraseña de ${usuario.nombre} se ha reseteado correctamente.` 
+              }
+            });
           },
           error: () => {
             this.snackBar.open('Error al resetear la contraseña', 'Cerrar', { duration: 4000 });

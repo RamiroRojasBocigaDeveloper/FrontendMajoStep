@@ -26,9 +26,12 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<any>(null);
 
   constructor(private http: HttpClient) {
-    const savedUser = localStorage.getItem('currentUser');
+    const savedUser = sessionStorage.getItem('currentUser');
     if (savedUser) {
-      this.currentUserSubject.next(JSON.parse(savedUser));
+      const user = JSON.parse(savedUser);
+      this.currentUserSubject.next(user);
+      // Refrescar el perfil al iniciar la app para asegurar que el rol es correcto
+      this.refreshProfile(user.id);
     }
   }
 
@@ -36,7 +39,7 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap((response: AuthResponse) => {
         if (response && response.token) {
-          localStorage.setItem('currentUser', JSON.stringify(response));
+          sessionStorage.setItem('currentUser', JSON.stringify(response));
           this.currentUserSubject.next(response);
         }
       })
@@ -44,8 +47,29 @@ export class AuthService {
   }
 
   logout() {
-    localStorage.removeItem('currentUser');
+    sessionStorage.removeItem('currentUser');
     this.currentUserSubject.next(null);
+  }
+
+  /**
+   * Refresca los datos del usuario desde el servidor (especialmente el rol)
+   */
+  refreshProfile(userId: number) {
+    this.http.get<any>(`${environment.apiUrl}/usuarios/${userId}`).subscribe({
+      next: (user) => {
+        const current = this.getCurrentUser();
+        if (current) {
+          const updated = { ...current, rol: user.rolNombre, nombre: user.nombre };
+          sessionStorage.setItem('currentUser', JSON.stringify(updated));
+          this.currentUserSubject.next(updated);
+        }
+      },
+      error: (err) => {
+        if (err.status === 401 || err.status === 403) {
+          this.logout();
+        }
+      }
+    });
   }
 
   getCurrentUser(): AuthResponse | null {
@@ -65,6 +89,11 @@ export class AuthService {
   isVendedor(): boolean {
     const user = this.getCurrentUser();
     return !!user && user.rol?.toUpperCase() === 'VENDEDOR';
+  }
+
+  isJefe(): boolean {
+    const user = this.getCurrentUser();
+    return !!user && user.rol?.toUpperCase() === 'JEFE';
   }
 
   isAdminOrSuperior(): boolean {

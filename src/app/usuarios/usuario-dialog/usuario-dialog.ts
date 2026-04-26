@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -8,6 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Usuario } from '../usuario';
+import { RolService, Rol } from '../rol.service';
 
 @Component({
   selector: 'app-usuario-dialog',
@@ -46,9 +47,9 @@ import { Usuario } from '../usuario';
           <mat-form-field appearance="outline">
             <mat-label>Rol de Usuario</mat-label>
             <mat-select formControlName="rolId">
-              <mat-option [value]="1">Administrador</mat-option>
-              <mat-option [value]="2">Vendedor</mat-option>
-              <mat-option [value]="3">Jefe / Supervisor</mat-option>
+              <mat-option *ngFor="let rol of roles" [value]="rol.id">
+                {{ rol.nombre | titlecase }}
+              </mat-option>
             </mat-select>
           </mat-form-field>
 
@@ -63,7 +64,7 @@ import { Usuario } from '../usuario';
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()">Cancelar</button>
-      <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="onSave()">Guardar</button>
+      <button mat-flat-button color="primary" [disabled]="form.invalid || loadingRoles" (click)="onSave()">Guardar</button>
     </mat-dialog-actions>
   `,
   styles: [`
@@ -72,27 +73,44 @@ import { Usuario } from '../usuario';
     mat-form-field { width: 100%; }
   `]
 })
-export class UsuarioDialog {
+export class UsuarioDialog implements OnInit {
   private fb = inject(FormBuilder);
+  private rolService = inject(RolService);
   dialogRef = inject(MatDialogRef<UsuarioDialog>);
   data = inject(MAT_DIALOG_DATA);
+
+  roles: Rol[] = [];
+  loadingRoles = true;
 
   form: FormGroup = this.fb.group({
     nombre: [this.data?.nombre || '', [Validators.required, Validators.minLength(3)]],
     email: [this.data?.email || '', [Validators.required, Validators.email]],
     password: ['', this.data ? [] : [Validators.required, Validators.minLength(4)]],
-    rolId: [this.getInitialRolId(), Validators.required],
+    rolId: [null, Validators.required],
     sueldoDiario: [this.data?.sueldoDiario || 0, [Validators.required, Validators.min(0)]],
     activo: [this.data?.activo ?? true]
   });
 
-  getInitialRolId(): number {
-    if (!this.data?.rolNombre) return 2; // Default to Vendedor
-    const rol = this.data.rolNombre.toUpperCase();
-    if (rol === 'ADMINISTRADOR') return 1;
-    if (rol === 'VENDEDOR') return 2;
-    if (rol === 'JEFE') return 3;
-    return 2;
+  ngOnInit() {
+    this.rolService.obtenerTodos().subscribe({
+      next: (roles) => {
+        this.roles = roles;
+        this.loadingRoles = false;
+        this.setInitialRol();
+      },
+      error: () => {
+        this.loadingRoles = false;
+      }
+    });
+  }
+
+  setInitialRol() {
+    if (this.data?.rolNombre) {
+      const currentRol = this.roles.find(r => r.nombre.toUpperCase() === this.data.rolNombre.toUpperCase());
+      if (currentRol) {
+        this.form.patchValue({ rolId: currentRol.id });
+      }
+    }
   }
 
   onCancel() { this.dialogRef.close(); }

@@ -23,6 +23,7 @@ import { VentaService } from './venta';
 import { MetodoPagoService, MetodoPago } from './metodo-pago';
 import { AuthService } from '../auth/auth';
 import { SesionTrabajoService, SesionTrabajo } from '../sesiones-trabajo/sesion-trabajo';
+import { SuccessDialog } from '../shared/success-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
 
 
@@ -181,6 +182,7 @@ interface ItemCarrito extends Producto {
               </mat-select>
             </mat-form-field>
 
+            <!-- Fecha Histórica (Solo Administradores) -->
             <div *ngIf="isAdmin()" style="margin-top: 15px; margin-bottom: 15px;">
               <h3 class="payment-title" style="color: #333333;">Fecha Histórica</h3>
               <mat-form-field appearance="outline" style="width: 100%;">
@@ -188,6 +190,7 @@ interface ItemCarrito extends Producto {
                 <input matInput [matDatepicker]="pickerVenta" [formControl]="fechaHistorica">
                 <mat-datepicker-toggle matIconSuffix [for]="pickerVenta"></mat-datepicker-toggle>
                 <mat-datepicker #pickerVenta panelClass="pink-datepicker"></mat-datepicker>
+                <mat-hint>Dejar vacío para registrar con fecha actual</mat-hint>
               </mat-form-field>
             </div>
 
@@ -566,11 +569,20 @@ export class Ventas implements OnInit {
 
     this.ventaService.procesarVenta(request).subscribe({
       next: () => {
+        let msg = 'La venta se ha registrado correctamente.';
         if (agotados.length > 0) {
-          this.snackBar.open(`¡Venta completada! ⚠️ Poner en reposición: ${agotados.join(', ')}`, 'Cerrar', { duration: 8000 });
-        } else {
-          this.snackBar.open('¡Venta completada con éxito!', 'OK', { duration: 3000 });
+          msg += ` ⚠️ ATENCIÓN: Poner en reposición: ${agotados.join(', ')}`;
         }
+
+        this.dialog.open(SuccessDialog, {
+          width: '420px',
+          data: { 
+            icon: '🛍️',
+            title: '¡Venta Exitosa!', 
+            message: msg 
+          }
+        });
+        
         this.carrito.set([]);
         this.loading = false;
       },

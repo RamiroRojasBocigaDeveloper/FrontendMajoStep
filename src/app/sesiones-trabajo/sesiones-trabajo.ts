@@ -10,6 +10,7 @@ import { SesionTrabajoService, SesionTrabajo, ResumenCierre } from './sesion-tra
 import { AuthService } from '../auth/auth';
 import { finalize } from 'rxjs';
 import { Router } from '@angular/router';
+import { SuccessDialog } from '../shared/success-dialog';
 
 @Component({
   selector: 'app-welcome-dialog',
@@ -367,7 +368,14 @@ export class SesionesTrabajo implements OnInit {
     this.loading.set(true);
     this.sesionService.cerrarSesion(sesionId).subscribe({
       next: () => {
-        this.snackBar.open('Caja Cerrada Exitosamente', 'OK', { duration: 3000 });
+        this.dialog.open(SuccessDialog, {
+          width: '400px',
+          data: { 
+            title: '¡Caja Cerrada!', 
+            message: 'La sesión de trabajo ha finalizado y el cierre se ha registrado con éxito.' 
+          }
+        });
+        
         this.sesionActiva.set(null);
         this.cargarDatos();
       },

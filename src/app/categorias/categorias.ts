@@ -9,6 +9,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CategoriaService, Categoria } from './categoria';
 import { CategoriaDialog } from './categoria-dialog/categoria-dialog';
+import { SuccessDialog } from '../shared/success-dialog';
 
 @Component({
   selector: 'app-categorias',
@@ -61,6 +62,14 @@ export class Categorias implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
+        this.dialog.open(SuccessDialog, {
+          width: '420px',
+          data: { 
+            icon: '📂',
+            title: result.action === 'created' ? 'Categoría Creada' : 'Categoría Actualizada', 
+            message: `La categoría "${result.nombre}" se ha guardado correctamente.` 
+          }
+        });
         this.cargarCategorias();
       }
     });
@@ -70,7 +79,14 @@ export class Categorias implements OnInit {
     if (confirm('¿Estás seguro de eliminar esta categoría?')) {
       this.categoriaService.eliminar(id).subscribe({
         next: () => {
-          this.snackBar.open('Categoría eliminada', 'OK');
+          this.dialog.open(SuccessDialog, {
+            width: '420px',
+            data: { 
+              icon: '🗑️',
+              title: 'Categoría Eliminada', 
+              message: 'La categoría se ha borrado del sistema.' 
+            }
+          });
           this.cargarCategorias();
         },
         error: (err) => {

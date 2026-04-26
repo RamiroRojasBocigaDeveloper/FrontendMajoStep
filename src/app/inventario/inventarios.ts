@@ -18,6 +18,7 @@ import { MovimientoInventarioService } from './inventario';
 import { InventarioDialog } from './inventario-dialog/inventario-dialog';
 import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
+import { SuccessDialog } from '../shared/success-dialog';
 
 @Component({
   selector: 'app-inventarios',
@@ -384,7 +385,14 @@ export class Inventarios implements OnInit {
       if (result) {
         this.inventarioService.registrarMovimiento(result).subscribe({
           next: () => {
-            this.snackBar.open('Movimiento registrado con éxito', 'OK', { duration: 3000 });
+            this.dialog.open(SuccessDialog, {
+              width: '420px',
+              data: { 
+                icon: '📦',
+                title: 'Movimiento Registrado', 
+                message: 'El stock se ha actualizado correctamente.' 
+              }
+            });
             this.cargarProductos();
           },
           error: (err) => {
@@ -406,14 +414,28 @@ export class Inventarios implements OnInit {
         if (producto?.id) {
           this.productoService.actualizar(producto.id, result).subscribe({
             next: () => {
-              this.snackBar.open('Producto actualizado', 'OK');
+              this.dialog.open(SuccessDialog, {
+                width: '420px',
+                data: { 
+                  icon: '📝',
+                  title: 'Producto Actualizado', 
+                  message: `Los cambios en ${result.nombre} se han guardado.` 
+                }
+              });
               this.cargarProductos();
             }
           });
         } else {
           this.productoService.crear(result).subscribe({
-            next: () => {
-              this.snackBar.open('Producto creado exitosamente', 'OK');
+            next: (nuevo) => {
+              this.dialog.open(SuccessDialog, {
+                width: '420px',
+                data: { 
+                  icon: '🆕',
+                  title: 'Producto Creado', 
+                  message: `El producto ${nuevo.nombre} ya está en el inventario.` 
+                }
+              });
               this.cargarProductos();
             }
           });
