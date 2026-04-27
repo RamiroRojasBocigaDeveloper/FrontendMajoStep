@@ -21,8 +21,8 @@ export const routes: Routes = [
       { path: 'categorias', component: Categorias },
       { path: 'inventario', component: Inventarios },
       { path: 'gastos', component: Gastos },
-      { path: 'reportes', component: Reportes },
-      { path: 'usuarios', component: Usuarios },
+      { path: 'reportes', component: Reportes, data: { expectedRoles: ['ADMINISTRADOR', 'JEFE'] } },
+      { path: 'usuarios', component: Usuarios, data: { expectedRoles: ['ADMINISTRADOR'] } },
       { path: 'sesiones-trabajo', component: SesionesTrabajo },
       { path: '', redirectTo: 'sesiones-trabajo', pathMatch: 'full' }
     ]

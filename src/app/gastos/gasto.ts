@@ -19,6 +19,8 @@ export interface GastoRequest {
   descripcion: string;
   monto: number;
   sesionId: number;
+  fechaHistorica?: string;
+  usuarioId?: number;
 }
 
 @Injectable({

@@ -52,10 +52,7 @@ export class CategoriaDialog {
 
       if (this.isEdit) {
         this.categoriaService.actualizar(this.data.id!, categoriaData).subscribe({
-          next: (res) => {
-            this.snackBar.open('Categoría actualizada', 'OK', { duration: 2000 });
-            this.dialogRef.close(true);
-          },
+          next: () => this.dialogRef.close({ action: 'updated', nombre: categoriaData.nombre }),
           error: () => {
             this.loading = false;
             this.snackBar.open('Error al actualizar', 'Cerrar');
@@ -63,10 +60,7 @@ export class CategoriaDialog {
         });
       } else {
         this.categoriaService.crear(categoriaData).subscribe({
-          next: (res) => {
-            this.snackBar.open('Categoría creada con éxito', 'OK', { duration: 2000 });
-            this.dialogRef.close(true);
-          },
+          next: (res) => this.dialogRef.close({ action: 'created', nombre: res.nombre }),
           error: () => {
             this.loading = false;
             this.snackBar.open('Error al crear', 'Cerrar');

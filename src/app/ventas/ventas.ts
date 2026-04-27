@@ -23,6 +23,8 @@ import { VentaService } from './venta';
 import { MetodoPagoService, MetodoPago } from './metodo-pago';
 import { AuthService } from '../auth/auth';
 import { SesionTrabajoService, SesionTrabajo } from '../sesiones-trabajo/sesion-trabajo';
+import { UsuarioService, Usuario } from '../usuarios/usuario';
+import { SuccessDialog } from '../shared/success-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
 
 
@@ -79,8 +81,8 @@ interface ItemCarrito extends Producto {
                     [disabled]="producto.stockActual <= 0"
                     [class.sin-stock]="producto.stockActual <= 0">
                     <div class="product-option">
-                      <span class="prod-name">{{producto.nombre}}</span>
-                      <span class="prod-ref">{{producto.referencia}}</span>
+                      <span class="prod-name">{{producto.referencia}}</span>
+                      <span class="prod-ref">{{producto.nombre}}</span>
                       <span class="prod-price">{{producto.precioVenta | currency:'USD'}}</span>
                       <span class="stock-badge" [class.badge-ok]="producto.stockActual > 5" [class.badge-low]="producto.stockActual > 0 && producto.stockActual <= 5" [class.badge-empty]="producto.stockActual <= 0">
                         {{ producto.stockActual <= 0 ? 'Sin stock' : 'Stock: ' + producto.stockActual }}
@@ -181,6 +183,7 @@ interface ItemCarrito extends Producto {
               </mat-select>
             </mat-form-field>
 
+            <!-- Fecha Histórica (Solo Administradores) -->
             <div *ngIf="isAdmin()" style="margin-top: 15px; margin-bottom: 15px;">
               <h3 class="payment-title" style="color: #333333;">Fecha Histórica</h3>
               <mat-form-field appearance="outline" style="width: 100%;">
@@ -188,6 +191,18 @@ interface ItemCarrito extends Producto {
                 <input matInput [matDatepicker]="pickerVenta" [formControl]="fechaHistorica">
                 <mat-datepicker-toggle matIconSuffix [for]="pickerVenta"></mat-datepicker-toggle>
                 <mat-datepicker #pickerVenta panelClass="pink-datepicker"></mat-datepicker>
+                <mat-hint>Dejar vacío para registrar con fecha actual</mat-hint>
+              </mat-form-field>
+
+              <h3 class="payment-title" style="color: #333333;">Asignar a Vendedor</h3>
+              <mat-form-field appearance="outline" style="width: 100%;">
+                <mat-label>Seleccionar Vendedor</mat-label>
+                <mat-select [formControl]="vendedorSeleccionado">
+                  <mat-option *ngFor="let u of usuarios()" [value]="u.id">
+                    <span class="dark-option-text">{{u.nombre}} ({{u.rolNombre}})</span>
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Si se deja vacío, se asignará a tu sesión actual</mat-hint>
               </mat-form-field>
             </div>
 
@@ -376,12 +391,14 @@ interface ItemCarrito extends Producto {
 export class Ventas implements OnInit {
   searchControl = new FormControl('');
   fechaHistorica = new FormControl<Date | null>(null);
+  vendedorSeleccionado = new FormControl<number | null>(null);
   loading = false;
   checkingSession = true;
   
   productosFiltrados = signal<Producto[]>([]);
   carrito = signal<ItemCarrito[]>([]);
   sesionActiva = signal<SesionTrabajo | null>(null);
+  usuarios = signal<Usuario[]>([]);
   displayedColumns: string[] = ['producto', 'precio', 'cantidad', 'subtotal', 'acciones'];
 
   private productoService = inject(ProductoService);
@@ -389,6 +406,7 @@ export class Ventas implements OnInit {
   private metodoPagoService = inject(MetodoPagoService);
   private authService = inject(AuthService);
   private sesionService = inject(SesionTrabajoService);
+  private usuarioService = inject(UsuarioService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
@@ -421,6 +439,12 @@ export class Ventas implements OnInit {
       this.metodosPago = res;
       if (res.length > 0) this.metodoPagoSeleccionado = res[0].id;
     });
+
+    if (this.isAdmin()) {
+      this.usuarioService.obtenerTodos().subscribe(users => {
+        this.usuarios.set(users.filter(u => u.activo));
+      });
+    }
   }
 
   verificarCajaFuerte() {
@@ -562,15 +586,28 @@ export class Ventas implements OnInit {
       request.fechaHistorica = fhStr;
     }
 
+    if (this.vendedorSeleccionado.value) {
+      request.usuarioId = this.vendedorSeleccionado.value;
+    }
+
     const agotados = this.carrito().filter(p => p.cantidadVenta >= p.stockActual).map(p => p.nombre);
 
     this.ventaService.procesarVenta(request).subscribe({
       next: () => {
+        let msg = 'La venta se ha registrado correctamente.';
         if (agotados.length > 0) {
-          this.snackBar.open(`¡Venta completada! ⚠️ Poner en reposición: ${agotados.join(', ')}`, 'Cerrar', { duration: 8000 });
-        } else {
-          this.snackBar.open('¡Venta completada con éxito!', 'OK', { duration: 3000 });
+          msg += ` ⚠️ ATENCIÓN: Poner en reposición: ${agotados.join(', ')}`;
         }
+
+        this.dialog.open(SuccessDialog, {
+          width: '420px',
+          data: { 
+            icon: '🛍️',
+            title: '¡Venta Exitosa!', 
+            message: msg 
+          }
+        });
+        
         this.carrito.set([]);
         this.loading = false;
       },

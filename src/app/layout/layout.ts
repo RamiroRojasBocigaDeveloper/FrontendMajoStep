@@ -1,4 +1,4 @@
-import { Component, inject, HostListener, OnInit } from '@angular/core';
+import { Component, inject, HostListener, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -6,11 +6,13 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatBadgeModule } from '@angular/material/badge';
 import { AuthService } from '../auth/auth';
 import { MatDialogModule, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ResumenCierreDialog } from '../sesiones-trabajo/sesiones-trabajo';
+import { ProductoService, Producto } from '../productos/producto';
 
 @Component({
   selector: 'app-confirm-logout-dialog',
@@ -93,6 +95,7 @@ export class ConfirmLogoutDialog {
     MatListModule,
     MatIconModule,
     MatButtonModule,
+    MatBadgeModule,
     MatDialogModule,
     MatSnackBarModule
   ],
@@ -113,7 +116,11 @@ export class ConfirmLogoutDialog {
             <span matListItemTitle>Sesión / Caja</span>
           </a>
           <a mat-list-item routerLink="/inventario" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
-            <mat-icon matListItemIcon>inventory_2</mat-icon>
+            <mat-icon matListItemIcon
+              [matBadge]="stockBajoCount() > 0 ? stockBajoCount() : null"
+              matBadgeColor="warn"
+              matBadgeSize="small"
+              [matBadgeHidden]="stockBajoCount() === 0">inventory_2</mat-icon>
             <span matListItemTitle>Inventario</span>
           </a>
 
@@ -121,11 +128,11 @@ export class ConfirmLogoutDialog {
             <mat-icon matListItemIcon>category</mat-icon>
             <span matListItemTitle>Categorías</span>
           </a>
-          <a mat-list-item routerLink="/gastos" routerLinkActive="active-link" *ngIf="isAdmin() || isVendedor()" (click)="cerrarMenuSiEsCelular(drawer)">
+          <a mat-list-item routerLink="/gastos" routerLinkActive="active-link" *ngIf="isAdmin() || isVendedor() || isJefe()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>payments</mat-icon>
             <span matListItemTitle>Gastos</span>
           </a>
-          <a mat-list-item routerLink="/reportes" routerLinkActive="active-link" *ngIf="isAdmin()" (click)="cerrarMenuSiEsCelular(drawer)">
+          <a mat-list-item routerLink="/reportes" routerLinkActive="active-link" *ngIf="isAdmin() || isJefe()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>assessment</mat-icon>
             <span matListItemTitle>Reportes</span>
           </a>
@@ -149,6 +156,18 @@ export class ConfirmLogoutDialog {
         </mat-toolbar>
         
         <div class="main-content">
+          <!-- Banner de alerta de stock bajo -->
+          <div class="stock-alert-banner" *ngIf="stockBajoCount() > 0 && mostrarAlertaStock">
+            <mat-icon>warning</mat-icon>
+            <span>
+              <strong>{{ stockBajoCount() }} producto(s) con stock bajo:</strong>
+              {{ nombresStockBajo() }}
+            </span>
+            <div class="alert-actions">
+              <a routerLink="/inventario" class="alert-link">Ver inventario</a>
+              <button class="alert-close" (click)="mostrarAlertaStock = false">✕</button>
+            </div>
+          </div>
           <router-outlet></router-outlet>
         </div>
       </mat-sidenav-content>
@@ -247,6 +266,40 @@ export class ConfirmLogoutDialog {
       color: var(--subtle-text);
       margin-right: 16px !important;
     }
+    .stock-alert-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-left: 4px solid #f9a825;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      color: #5d4037;
+      font-size: 14px;
+      flex-wrap: wrap;
+    }
+    .stock-alert-banner mat-icon { color: #f9a825; flex-shrink: 0; }
+    .stock-alert-banner span { flex: 1; }
+    .alert-actions { display: flex; align-items: center; gap: 12px; }
+    .alert-link {
+      color: #e65100;
+      font-weight: 700;
+      text-decoration: none;
+      border-bottom: 1px dashed #e65100;
+    }
+    .alert-link:hover { color: #bf360c; }
+    .alert-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #888;
+      font-size: 16px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .alert-close:hover { background: #eee; color: #555; }
   `]
 })
 export class Layout implements OnInit {
@@ -255,8 +308,19 @@ export class Layout implements OnInit {
   private dialog = inject(MatDialog);
   private sesionService = inject(SesionTrabajoService);
   private snackBar = inject(MatSnackBar);
+  private productoService = inject(ProductoService);
 
   isMobile = false;
+  mostrarAlertaStock = true;
+  productosConStockBajo = signal<Producto[]>([]);
+
+  stockBajoCount = () => this.productosConStockBajo().length;
+
+  nombresStockBajo = () => {
+    const lista = this.productosConStockBajo();
+    const nombres = lista.slice(0, 3).map(p => p.nombre).join(', ');
+    return lista.length > 3 ? `${nombres}... y ${lista.length - 3} más` : nombres;
+  };
 
   @HostListener('window:resize')
   onResize() {
@@ -265,6 +329,14 @@ export class Layout implements OnInit {
 
   ngOnInit() {
     this.isMobile = window.innerWidth <= 768;
+    this.cargarStockBajo();
+  }
+
+  cargarStockBajo() {
+    this.productoService.obtenerStockBajo().subscribe({
+      next: (data) => this.productosConStockBajo.set(data),
+      error: () => {} // silencioso
+    });
   }
 
   cerrarMenuSiEsCelular(drawer: any) {
@@ -279,6 +351,10 @@ export class Layout implements OnInit {
 
   isVendedor(): boolean {
     return this.authService.isVendedor();
+  }
+
+  isJefe(): boolean {
+    return this.authService.isJefe();
   }
 
   getNombreUsuario(): string {

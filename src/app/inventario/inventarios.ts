@@ -10,18 +10,22 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatInputModule } from '@angular/material/input';
+import { FormsModule } from '@angular/forms';
 import { ProductoService, Producto } from '../productos/producto';
 import { CategoriaService, Categoria } from '../categorias/categoria';
 import { MovimientoInventarioService } from './inventario';
 import { InventarioDialog } from './inventario-dialog/inventario-dialog';
 import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
+import { SuccessDialog } from '../shared/success-dialog';
 
 @Component({
   selector: 'app-inventarios',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatTableModule,
     MatCardModule,
     MatButtonModule,
@@ -30,22 +34,23 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
     MatDialogModule,
     MatSelectModule,
     MatFormFieldModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatInputModule
   ],
   template: `
     <mat-card class="header-card">
       <div class="header-content" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <div class="title-group">
           <h1>Inventario de Productos</h1>
-          <p>Control de stock, precios y referencias de tu calzado</p>
+          <p>Control de stock, precios y referencias de tu calzado - {{ productos().length }} productos en total</p>
         </div>
         <div class="actions-group" style="display: flex; gap: 16px; align-items: center;">
           <mat-form-field appearance="outline" class="categoria-filter">
             <mat-label>Filtrar por Categoría</mat-label>
             <mat-select (selectionChange)="categoriaSeleccionada.set($event.value)">
-              <mat-option [value]="null">Todas</mat-option>
+              <mat-option [value]="null">Todas ({{ productos().length }})</mat-option>
               <mat-option *ngFor="let cat of categorias()" [value]="cat.id">
-                {{ cat.nombre }}
+                {{ cat.nombre }} ({{ getCantidadPorCategoria(cat.id) }})
               </mat-option>
             </mat-select>
           </mat-form-field>
@@ -56,16 +61,29 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
       </div>
     </mat-card>
 
+    <mat-card class="luxury-card search-bar-card">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Buscar por nombre o referencia...</mat-label>
+        <input matInput [ngModel]="terminoBusqueda()" (ngModelChange)="terminoBusqueda.set($event)" placeholder="Ej: Sandalia, CHV-001...">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+      <span class="results-count" *ngIf="terminoBusqueda()">
+        {{ productosFiltrados().length }} resultado(s) encontrado(s)
+      </span>
+    </mat-card>
+
     <mat-card class="luxury-card">
       <mat-card-content>
         <table mat-table [dataSource]="productosFiltrados()" class="full-width">
           <ng-container matColumnDef="referencia">
-            <th mat-header-cell *matHeaderCellDef> Referencia </th>
-            <td mat-cell *matCellDef="let p"> <code>{{p.referencia}}</code> </td>
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Referencia </th>
+            <td mat-cell *matCellDef="let p" class="text-center"> 
+              <span class="ref-text">{{p.referencia}}</span>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="nombre">
-            <th mat-header-cell *matHeaderCellDef> Nombre </th>
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Nombre </th>
             <td mat-cell *matCellDef="let p">
               <div class="prod-cell">
                 <img *ngIf="p.imagenUrl" [src]="p.imagenUrl" class="thumb" (click)="abrirImagen(p.imagenUrl)" matTooltip="Ver foto ampliada">
@@ -75,23 +93,30 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="talla">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Talla </th>
+            <td mat-cell *matCellDef="let p" class="text-center"> 
+              <span class="talla-badge">{{p.talla || 'N/A'}}</span>
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="categoria">
-            <th mat-header-cell *matHeaderCellDef> Categoría </th>
-            <td mat-cell *matCellDef="let p"> 
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Categoría </th>
+            <td mat-cell *matCellDef="let p" class="text-center"> 
               <mat-chip-set>
-                <mat-chip>{{p.categoriaNombre || 'Sin Categoría'}}</mat-chip>
+                <mat-chip [class]="getCategoriaClass(p.categoriaNombre)">{{p.categoriaNombre || 'Sin Categoría'}}</mat-chip>
               </mat-chip-set>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="precio">
-            <th mat-header-cell *matHeaderCellDef> Precio </th>
-            <td mat-cell *matCellDef="let p"> {{p.precioVenta | currency:'USD'}} </td>
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Precio </th>
+            <td mat-cell *matCellDef="let p" class="text-center"> {{p.precioVenta | currency:'USD':'symbol':'1.0-0'}} </td>
           </ng-container>
 
           <ng-container matColumnDef="stock">
-            <th mat-header-cell *matHeaderCellDef> Stock </th>
-            <td mat-cell *matCellDef="let p">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Stock </th>
+            <td mat-cell *matCellDef="let p" class="text-center">
               <span [class.stock-low]="p.stockActual <= 5">
                 {{p.stockActual}}
               </span>
@@ -99,8 +124,8 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
           </ng-container>
 
           <ng-container matColumnDef="estado">
-            <th mat-header-cell *matHeaderCellDef> Estado </th>
-            <td mat-cell *matCellDef="let p">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Estado </th>
+            <td mat-cell *matCellDef="let p" class="text-center">
               <span *ngIf="p.stockActual <= 0" class="status-out-of-stock">Agotado</span>
               <span *ngIf="p.stockActual > 0" [class.status-active]="p.activo" [class.status-inactive]="!p.activo">
                 {{ p.activo ? 'Disponible' : 'Inactivo' }}
@@ -109,8 +134,8 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
           </ng-container>
 
           <ng-container matColumnDef="acciones">
-            <th mat-header-cell *matHeaderCellDef> Acciones </th>
-            <td mat-cell *matCellDef="let p">
+            <th mat-header-cell *matHeaderCellDef class="text-center"> Acciones </th>
+            <td mat-cell *matCellDef="let p" class="text-center">
               <div class="action-buttons-group">
                 <button mat-stroked-button color="primary" (click)="abrirDialogoMovimiento(p)">
                   <mat-icon>inventory_2</mat-icon> Ingresar Stock
@@ -145,7 +170,24 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
       color: var(--dark-text);
     }
     .categoria-filter {
-      width: 200px;
+      width: 300px;
+    }
+    .search-bar-card {
+      margin-bottom: 16px;
+      padding: 12px 16px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .search-field {
+      flex: 1;
+      width: 100%;
+    }
+    .results-count {
+      font-size: 13px;
+      color: var(--primary-pink);
+      font-weight: 600;
+      white-space: nowrap;
     }
     ::ng-deep .categoria-filter .mat-mdc-form-field-subscript-wrapper {
       display: none;
@@ -199,8 +241,12 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
     ::ng-deep th.mat-mdc-header-cell {
       background: var(--bg-main) !important;
       color: var(--primary-pink) !important;
-      font-weight: 700 !important;
+      font-weight: 800 !important;
+      text-align: center !important;
+      font-size: 15px !important;
     }
+    .text-center { text-align: center !important; }
+    ::ng-deep .mat-mdc-chip-set { justify-content: center; }
     code {
       background: #f5f5f5;
       padding: 2px 6px;
@@ -211,6 +257,27 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
     .thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; cursor: pointer; transition: transform 0.2s; border: 1px solid #eee; }
     .thumb:hover { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
     .thumb-placeholder { width: 40px; height: 40px; font-size: 40px; color: #ccc; }
+    .talla-badge {
+      background: #f3e5f5;
+      color: #7b1fa2;
+      padding: 6px 16px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 16px;
+      display: inline-block;
+      box-shadow: 0 2px 4px rgba(123, 31, 162, 0.1);
+    }
+    .cat-nina { background-color: #f48fb1 !important; color: #880e4f !important; font-weight: 800 !important; }
+    .cat-mujer { background-color: #d81b60 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .cat-nino { background-color: #03a9f4 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .cat-hombre { background-color: #0d47a1 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .ref-text { 
+      color: var(--primary-pink);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-family: inherit;
+      font-size: 15px;
+    }
     .action-buttons-group { display: flex; gap: 8px; flex-wrap: wrap; }
     .action-buttons-group button { min-width: 140px; font-weight: 600; letter-spacing: 0.5px; border-width: 2px; }
   `]
@@ -226,18 +293,50 @@ export class Inventarios implements OnInit {
   categorias = signal<Categoria[]>([]);
   categoriaSeleccionada = signal<number | null>(null);
 
+  terminoBusqueda = signal<string>('');
+
   productosFiltrados = computed(() => {
     const prods = this.productos();
     const catId = this.categoriaSeleccionada();
-    if (catId === null) return prods;
+    const term = this.terminoBusqueda().toLowerCase().trim();
+
     return prods.filter(p => {
-      const pCatId = p.categoriaId ?? p.categoria?.id;
-      return pCatId === catId;
+      const pasaCategoria = (catId === null || catId === undefined)
+        ? true
+        : (p.categoriaId ?? p.categoria?.id) == catId;
+
+      const pasaBusqueda = term.length < 2
+        ? true
+        : (p.nombre?.toLowerCase().includes(term) || p.referencia?.toLowerCase().includes(term));
+
+      return pasaCategoria && pasaBusqueda;
     });
   });
 
+  onBusquedaChange(value: string) {
+    this.terminoBusqueda.set(value);
+  }
+
+  getCategoriaClass(nombre: string | undefined): string {
+    if (!nombre) return '';
+    const n = nombre.toLowerCase();
+    if (n.includes('niña')) return 'cat-nina';
+    if (n.includes('mujer')) return 'cat-mujer';
+    if (n.includes('niño')) return 'cat-nino';
+    if (n.includes('hombre')) return 'cat-hombre';
+    return '';
+  }
+
+  getCantidadPorCategoria(catId: number | undefined): number {
+    if (catId === undefined) return 0;
+    return this.productos().filter(p => {
+      const pCatId = p.categoriaId ?? p.categoria?.id;
+      return pCatId == catId;
+    }).length;
+  }
+
   loading = false;
-  displayedColumns = ['referencia', 'nombre', 'categoria', 'precio', 'stock', 'estado', 'acciones'];
+  displayedColumns = ['referencia', 'nombre', 'talla', 'categoria', 'precio', 'stock', 'estado', 'acciones'];
 
 
   ngOnInit() {
@@ -286,7 +385,14 @@ export class Inventarios implements OnInit {
       if (result) {
         this.inventarioService.registrarMovimiento(result).subscribe({
           next: () => {
-            this.snackBar.open('Movimiento registrado con éxito', 'OK', { duration: 3000 });
+            this.dialog.open(SuccessDialog, {
+              width: '420px',
+              data: { 
+                icon: '📦',
+                title: 'Movimiento Registrado', 
+                message: 'El stock se ha actualizado correctamente.' 
+              }
+            });
             this.cargarProductos();
           },
           error: (err) => {
@@ -308,14 +414,28 @@ export class Inventarios implements OnInit {
         if (producto?.id) {
           this.productoService.actualizar(producto.id, result).subscribe({
             next: () => {
-              this.snackBar.open('Producto actualizado', 'OK');
+              this.dialog.open(SuccessDialog, {
+                width: '420px',
+                data: { 
+                  icon: '📝',
+                  title: 'Producto Actualizado', 
+                  message: `Los cambios en ${result.nombre} se han guardado.` 
+                }
+              });
               this.cargarProductos();
             }
           });
         } else {
           this.productoService.crear(result).subscribe({
-            next: () => {
-              this.snackBar.open('Producto creado exitosamente', 'OK');
+            next: (nuevo) => {
+              this.dialog.open(SuccessDialog, {
+                width: '420px',
+                data: { 
+                  icon: '🆕',
+                  title: 'Producto Creado', 
+                  message: `El producto ${nuevo.nombre} ya está en el inventario.` 
+                }
+              });
               this.cargarProductos();
             }
           });
