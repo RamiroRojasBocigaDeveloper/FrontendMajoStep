@@ -11,6 +11,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { CategoriaGastoService, CategoriaGasto } from '../categoria-gasto';
 import { SubcategoriaGastoService, SubcategoriaGasto } from '../subcategoria-gasto';
+import { UsuarioService, Usuario } from '../../usuarios/usuario';
 import { AuthService } from '../../auth/auth';
 import { MatIconModule } from '@angular/material/icon';
 import { provideNativeDateAdapter } from '@angular/material/core';
@@ -72,6 +73,16 @@ import { provideNativeDateAdapter } from '@angular/material/core';
             <mat-datepicker-toggle matIconSuffix [for]="pickerGasto"></mat-datepicker-toggle>
             <mat-datepicker #pickerGasto panelClass="pink-datepicker"></mat-datepicker>
           </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="isAdmin()" style="width: 100%;">
+            <mat-label>Asignar a Vendedor</mat-label>
+            <mat-select formControlName="usuarioId">
+              <mat-option *ngFor="let u of usuarios" [value]="u.id">
+                {{u.nombre}} ({{u.rolNombre}})
+              </mat-option>
+            </mat-select>
+            <mat-hint>Si se deja vacío, se asignará a tu sesión actual</mat-hint>
+          </mat-form-field>
         </div>
       </form>
     </mat-dialog-content>
@@ -107,6 +118,7 @@ export class GastoDialog implements OnInit {
   private fb = inject(FormBuilder);
   private categoriaGastoService = inject(CategoriaGastoService);
   private subcategoriaGastoService = inject(SubcategoriaGastoService);
+  private usuarioService = inject(UsuarioService);
   private authService = inject(AuthService);
   dialogRef = inject(MatDialogRef<GastoDialog>);
   data = inject(MAT_DIALOG_DATA);
@@ -114,6 +126,7 @@ export class GastoDialog implements OnInit {
 
   categorias: CategoriaGasto[] = [];
   subcategorias: SubcategoriaGasto[] = [];
+  usuarios: Usuario[] = [];
 
   form: FormGroup = this.fb.group({
     sesionId: [this.data?.sesionId || 1, Validators.required],
@@ -121,7 +134,8 @@ export class GastoDialog implements OnInit {
     subcategoriaGastoId: [null],
     monto: ['', [Validators.required, Validators.min(1)]],
     descripcion: ['', [Validators.required, Validators.maxLength(200)]],
-    fechaHistorica: [null]
+    fechaHistorica: [null],
+    usuarioId: [null]
   });
 
   isAdmin(): boolean {
@@ -130,6 +144,12 @@ export class GastoDialog implements OnInit {
 
   ngOnInit() {
     this.categoriaGastoService.obtenerTodas().subscribe(res => this.categorias = res);
+
+    if (this.isAdmin()) {
+      this.usuarioService.obtenerTodos().subscribe(res => {
+        this.usuarios = res.filter(u => u.activo);
+      });
+    }
 
     this.form.get('categoriaGastoId')?.valueChanges.subscribe(catId => {
       // Limpiar subcategoría al cambiar categoría

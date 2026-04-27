@@ -23,6 +23,7 @@ import { VentaService } from './venta';
 import { MetodoPagoService, MetodoPago } from './metodo-pago';
 import { AuthService } from '../auth/auth';
 import { SesionTrabajoService, SesionTrabajo } from '../sesiones-trabajo/sesion-trabajo';
+import { UsuarioService, Usuario } from '../usuarios/usuario';
 import { SuccessDialog } from '../shared/success-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
 
@@ -191,6 +192,17 @@ interface ItemCarrito extends Producto {
                 <mat-datepicker-toggle matIconSuffix [for]="pickerVenta"></mat-datepicker-toggle>
                 <mat-datepicker #pickerVenta panelClass="pink-datepicker"></mat-datepicker>
                 <mat-hint>Dejar vacío para registrar con fecha actual</mat-hint>
+              </mat-form-field>
+
+              <h3 class="payment-title" style="color: #333333;">Asignar a Vendedor</h3>
+              <mat-form-field appearance="outline" style="width: 100%;">
+                <mat-label>Seleccionar Vendedor</mat-label>
+                <mat-select [formControl]="vendedorSeleccionado">
+                  <mat-option *ngFor="let u of usuarios()" [value]="u.id">
+                    <span class="dark-option-text">{{u.nombre}} ({{u.rolNombre}})</span>
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Si se deja vacío, se asignará a tu sesión actual</mat-hint>
               </mat-form-field>
             </div>
 
@@ -379,12 +391,14 @@ interface ItemCarrito extends Producto {
 export class Ventas implements OnInit {
   searchControl = new FormControl('');
   fechaHistorica = new FormControl<Date | null>(null);
+  vendedorSeleccionado = new FormControl<number | null>(null);
   loading = false;
   checkingSession = true;
   
   productosFiltrados = signal<Producto[]>([]);
   carrito = signal<ItemCarrito[]>([]);
   sesionActiva = signal<SesionTrabajo | null>(null);
+  usuarios = signal<Usuario[]>([]);
   displayedColumns: string[] = ['producto', 'precio', 'cantidad', 'subtotal', 'acciones'];
 
   private productoService = inject(ProductoService);
@@ -392,6 +406,7 @@ export class Ventas implements OnInit {
   private metodoPagoService = inject(MetodoPagoService);
   private authService = inject(AuthService);
   private sesionService = inject(SesionTrabajoService);
+  private usuarioService = inject(UsuarioService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
@@ -424,6 +439,12 @@ export class Ventas implements OnInit {
       this.metodosPago = res;
       if (res.length > 0) this.metodoPagoSeleccionado = res[0].id;
     });
+
+    if (this.isAdmin()) {
+      this.usuarioService.obtenerTodos().subscribe(users => {
+        this.usuarios.set(users.filter(u => u.activo));
+      });
+    }
   }
 
   verificarCajaFuerte() {
@@ -563,6 +584,10 @@ export class Ventas implements OnInit {
 
     if (fhStr) {
       request.fechaHistorica = fhStr;
+    }
+
+    if (this.vendedorSeleccionado.value) {
+      request.usuarioId = this.vendedorSeleccionado.value;
     }
 
     const agotados = this.carrito().filter(p => p.cantidadVenta >= p.stockActual).map(p => p.nombre);

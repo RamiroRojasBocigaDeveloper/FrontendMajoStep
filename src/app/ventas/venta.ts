@@ -14,6 +14,8 @@ export interface VentaRequest {
   metodoPagoId: number;
   descuento?: number;
   detalles: DetalleVentaRequest[];
+  fechaHistorica?: string;
+  usuarioId?: number;
 }
 
 @Injectable({
