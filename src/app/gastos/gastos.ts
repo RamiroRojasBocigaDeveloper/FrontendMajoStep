@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,6 +11,7 @@ import { GastoService, Gasto } from './gasto';
 import { GastoDialog } from './gasto-dialog/gasto-dialog';
 import { AuthService } from '../auth/auth';
 import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
+import { SuccessDialog } from '../shared/success-dialog';
 
 
 @Component({
@@ -30,8 +32,8 @@ import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
           <h1>Gestión de Gastos</h1>
           <p>Registra salidas de dinero como nómina, servicios y compras locales</p>
         </div>
-        <button mat-fab color="warn" (click)="abrirDialogoGasto()" title="Registrar Gasto">
-          <mat-icon>add_circle</mat-icon>
+        <button mat-raised-button color="warn" class="add-gasto-btn" (click)="abrirDialogoGasto()">
+          <mat-icon>add_circle</mat-icon> REGISTRAR NUEVO GASTO
         </button>
       </div>
     </mat-card>
@@ -132,10 +134,15 @@ import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
       font-weight: 700 !important;
     }
     .sub-badge {
-      font-size: 0.8em;
-      color: var(--primary-color);
       margin-left: 4px;
       font-weight: 500;
+    }
+    .add-gasto-btn {
+      padding: 25px 30px !important;
+      font-weight: 800;
+      border-radius: 12px;
+      font-size: 15px;
+      letter-spacing: 0.5px;
     }
   `]
 })
@@ -145,6 +152,7 @@ export class Gastos implements OnInit {
   private sesionService = inject(SesionTrabajoService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
 
   gastos = signal<Gasto[]>([]);
   loading = false;
@@ -179,7 +187,14 @@ export class Gastos implements OnInit {
     if (confirm('¿Estás seguro de eliminar este gasto?')) {
       this.gastoService.eliminar(id).subscribe({
         next: () => {
-          this.snackBar.open('Gasto eliminado correctamente', 'OK');
+          this.dialog.open(SuccessDialog, {
+            width: '420px',
+            data: { 
+              icon: '🗑️',
+              title: 'Gasto Eliminado', 
+              message: 'El registro de gasto se ha borrado correctamente.' 
+            }
+          });
           this.cargarGastos();
         }
       });
@@ -203,7 +218,14 @@ export class Gastos implements OnInit {
           if (result) {
             this.gastoService.crear(result).subscribe({
               next: () => {
-                this.snackBar.open('Gasto registrado con éxito', 'OK');
+                this.dialog.open(SuccessDialog, {
+                  width: '420px',
+                  data: { 
+                    icon: '💸',
+                    title: 'Gasto Registrado', 
+                    message: 'El gasto se ha guardado en la sesión actual.' 
+                  }
+                });
                 this.cargarGastos();
               }
             });
@@ -212,7 +234,24 @@ export class Gastos implements OnInit {
       },
       error: () => {
         this.loading = false;
-        this.snackBar.open('Debes tener una sesión abierta para registrar gastos', 'Cerrar');
+        const dialogRef = this.dialog.open(SuccessDialog, {
+          width: '420px',
+          data: { 
+            icon: '❌',
+            title: 'Caja Cerrada', 
+            titleColor: '#d32f2f',
+            message: 'No puedes registrar gastos si tu caja no está abierta. ¿Quieres ir a la sección de ventas para abrir tu turno?',
+            btnText: 'SÍ, IR A VENTAS',
+            btnIcon: 'point_of_sale',
+            showCancel: true
+          }
+        });
+
+        dialogRef.afterClosed().subscribe(confirm => {
+          if (confirm) {
+            this.router.navigate(['/ventas']);
+          }
+        });
       }
     });
   }

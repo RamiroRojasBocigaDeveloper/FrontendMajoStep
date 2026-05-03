@@ -19,6 +19,7 @@ import { InventarioDialog } from './inventario-dialog/inventario-dialog';
 import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
 import { SuccessDialog } from '../shared/success-dialog';
+import { AuthService } from '../auth/auth';
 
 @Component({
   selector: 'app-inventarios',
@@ -54,7 +55,7 @@ import { SuccessDialog } from '../shared/success-dialog';
               </mat-option>
             </mat-select>
           </mat-form-field>
-          <button mat-fab color="primary" (click)="abrirDialogoProducto()" style="margin-top: -15px;" title="Nuevo Producto">
+          <button mat-fab color="primary" (click)="abrirDialogoProducto()" style="margin-top: -15px;" title="Nuevo Producto" *ngIf="isAdmin() || isJefe()">
             <mat-icon>add</mat-icon>
           </button>
         </div>
@@ -147,8 +148,8 @@ import { SuccessDialog } from '../shared/success-dialog';
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns();"></tr>
         </table>
 
         <div *ngIf="loading" class="loading-state">
@@ -288,6 +289,7 @@ export class Inventarios implements OnInit {
   private categoriaService = inject(CategoriaService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private authService = inject(AuthService);
 
   productos = signal<Producto[]>([]);
   categorias = signal<Categoria[]>([]);
@@ -336,7 +338,22 @@ export class Inventarios implements OnInit {
   }
 
   loading = false;
-  displayedColumns = ['referencia', 'nombre', 'talla', 'categoria', 'precio', 'stock', 'estado', 'acciones'];
+  
+  displayedColumns = computed(() => {
+    const columns = ['referencia', 'nombre', 'talla', 'categoria', 'precio', 'stock', 'estado'];
+    if (this.isAdmin() || this.isJefe()) {
+      columns.push('acciones');
+    }
+    return columns;
+  });
+
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  isJefe(): boolean {
+    return this.authService.isJefe();
+  }
 
 
   ngOnInit() {

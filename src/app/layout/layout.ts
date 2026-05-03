@@ -111,7 +111,7 @@ export class ConfirmLogoutDialog {
             <mat-icon matListItemIcon>shopping_cart</mat-icon>
             <span matListItemTitle>Ventas (TPV)</span>
           </a>
-          <a mat-list-item routerLink="/sesiones-trabajo" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
+          <a mat-list-item routerLink="/sesiones-trabajo" routerLinkActive="active-link" *ngIf="isAdmin() || isJefe()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>point_of_sale</mat-icon>
             <span matListItemTitle>Sesión / Caja</span>
           </a>
@@ -150,8 +150,8 @@ export class ConfirmLogoutDialog {
           </button>
           <span class="toolbar-title">MajoStep <span class="user-badge">{{ getNombreUsuario() }}</span></span>
           <span class="spacer"></span>
-          <button mat-icon-button (click)="logout()" title="Cerrar Sesión">
-            <mat-icon>logout</mat-icon>
+          <button mat-flat-button class="logout-btn-premium" (click)="logout()">
+            <mat-icon>power_settings_new</mat-icon> <span>SALIR</span>
           </button>
         </mat-toolbar>
         
@@ -300,6 +300,23 @@ export class ConfirmLogoutDialog {
       border-radius: 4px;
     }
     .alert-close:hover { background: #eee; color: #555; }
+    
+    .logout-btn-premium {
+      background: rgba(255,255,255,0.15) !important;
+      color: white !important;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 12px;
+      padding: 0 20px;
+      font-weight: 700;
+      height: 40px;
+      transition: all 0.3s;
+    }
+    .logout-btn-premium:hover {
+      background: #f44336 !important;
+      border-color: #f44336;
+      box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+    }
+    .logout-btn-premium mat-icon { margin-right: 8px; font-size: 20px; }
   `]
 })
 export class Layout implements OnInit {
@@ -428,12 +445,17 @@ export class Layout implements OnInit {
             }
           });
         } else {
-          this.ejecutarLogout();
+          // Si la caja ya está cerrada, pedimos una confirmación simple pero bonita
+          if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+            this.ejecutarLogout();
+          }
         }
       },
       error: () => {
-        // Si hay error (No tiene caja abierta), simplemente salimos
-        this.ejecutarLogout();
+        // Si hay error (No tiene caja abierta), simplemente salimos con confirmación
+        if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+          this.ejecutarLogout();
+        }
       }
     });
   }

@@ -26,6 +26,7 @@ import { SesionTrabajoService, SesionTrabajo } from '../sesiones-trabajo/sesion-
 import { UsuarioService, Usuario } from '../usuarios/usuario';
 import { SuccessDialog } from '../shared/success-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
+import { ResumenCierreDialog } from '../sesiones-trabajo/sesiones-trabajo';
 
 
 interface ItemCarrito extends Producto {
@@ -169,7 +170,7 @@ export class VentaHistorialDialog implements OnInit {
             <mat-icon mat-card-avatar color="primary">search</mat-icon>
             <mat-card-title>Buscador de Calzado</mat-card-title>
             <span class="spacer"></span>
-            <button mat-stroked-button color="primary" *ngIf="isAdmin()" (click)="abrirHistorial()">
+            <button mat-stroked-button color="primary" *ngIf="isAdmin()" (click)="abrirHistorial()" style="margin-right: 8px;">
               <mat-icon>history</mat-icon> Historial / Editar
             </button>
           </mat-card-header>
@@ -332,6 +333,15 @@ export class VentaHistorialDialog implements OnInit {
             <button mat-button class="cancel-edit-btn" *ngIf="editMode()" (click)="cancelarEdicion()">
                <mat-icon>close</mat-icon> Cancelar Edición
             </button>
+
+            <mat-divider style="margin: 20px 0;"></mat-divider>
+
+            <button mat-raised-button class="close-box-btn" 
+                    *ngIf="sesionActiva()"
+                    (click)="cerrarCajaDirecto()">
+              <mat-icon>power_settings_new</mat-icon>
+              CERRAR CAJA Y TURNO
+            </button>
           </mat-card-content>
         </mat-card>
       </div>
@@ -347,10 +357,12 @@ export class VentaHistorialDialog implements OnInit {
             <p>Por seguridad, no puedes realizar ventas si tu turno no está activo.</p>
             <p>Debes abrir tu caja antes de registrar movimientos de dinero.</p>
             
-            <button mat-flat-button color="primary" class="open-box-btn" (click)="irAAbrirCaja()">
-              <mat-icon>point_of_sale</mat-icon>
-              Ir a Abrir Caja
-            </button>
+            <div class="lock-actions">
+              <button mat-raised-button color="primary" class="quick-open-btn" (click)="abrirCajaDirecto()" [disabled]="loading">
+                <mat-icon>play_circle</mat-icon>
+                {{ loading ? 'Abriendo...' : 'ABRIR CAJA AHORA' }}
+              </button>
+            </div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -478,6 +490,14 @@ export class VentaHistorialDialog implements OnInit {
       text-align: center;
       padding: 40px;
       border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      max-width: 400px;
+    }
+    .lock-icon { font-size: 80px; width: 80px; height: 80px; color: #999; margin-bottom: 20px; }
+    .lock-card h2 { font-weight: 800; color: #333; margin-bottom: 10px; }
+    .lock-card p { color: #666; margin-bottom: 5px; }
+    .lock-actions { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+    .quick-open-btn { padding: 25px !important; font-weight: 800; border-radius: 12px; font-size: 16px; letter-spacing: 1px; }
       max-width: 450px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.1);
       border-top: 8px solid var(--primary-pink);
@@ -506,6 +526,18 @@ export class VentaHistorialDialog implements OnInit {
       border-radius: 12px;
       font-weight: bold;
     }
+    
+    .close-box-btn {
+      width: 100%;
+      background-color: #f44336 !important;
+      color: white !important;
+      padding: 25px 0 !important;
+      font-size: 16px;
+      border-radius: 12px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
     .spacer { flex: 1 1 auto; }
     .cancel-edit-btn { width: 100%; margin-top: 10px; color: #666; }
   `]
@@ -592,9 +624,6 @@ export class Ventas implements OnInit {
     });
   }
 
-  irAAbrirCaja() {
-    this.router.navigate(['/sesiones-trabajo']);
-  }
 
   abrirImagen(url: string) {
     if (!url) return;
@@ -801,5 +830,61 @@ export class Ventas implements OnInit {
     this.carrito.set([]);
     this.metodoPagoSeleccionado = this.metodosPago[0]?.id || 1;
     this.vendedorSeleccionado.setValue(null);
+  }
+
+  abrirCajaDirecto() {
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+
+    this.loading = true;
+    this.sesionService.abrirSesion(user.id).subscribe({
+      next: (sesion) => {
+        this.sesionActiva.set(sesion);
+        this.loading = false;
+        this.snackBar.open('¡Caja abierta con éxito! Ya puedes vender.', 'OK', { duration: 3000 });
+      },
+      error: (err) => {
+        this.loading = false;
+        this.snackBar.open('Error al abrir caja: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
+      }
+    });
+  }
+
+  cerrarCajaDirecto() {
+    const sesion = this.sesionActiva();
+    if (!sesion) return;
+
+    this.loading = true;
+    this.sesionService.obtenerResumenCierre(sesion.id).subscribe({
+      next: (resumen) => {
+        this.loading = false;
+        const dialogRef = this.dialog.open(ResumenCierreDialog, {
+          width: '450px',
+          disableClose: true,
+          data: resumen
+        });
+
+        dialogRef.afterClosed().subscribe(confirm => {
+          if (confirm) {
+            this.loading = true;
+            this.sesionService.cerrarSesion(sesion.id).subscribe({
+              next: () => {
+                this.sesionActiva.set(null);
+                this.loading = false;
+                this.snackBar.open('Caja cerrada con éxito.', 'OK', { duration: 3000 });
+              },
+              error: (err) => {
+                this.loading = false;
+                this.snackBar.open('Error al cerrar caja: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
+              }
+            });
+          }
+        });
+      },
+      error: (err) => {
+        this.loading = false;
+        this.snackBar.open('Error al obtener resumen: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
+      }
+    });
   }
 }

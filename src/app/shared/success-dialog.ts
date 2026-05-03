@@ -11,12 +11,15 @@ import { MatIconModule } from '@angular/material/icon';
   template: `
     <div class="welcome-wrapper">
       <div class="welcome-icon">{{ data.icon || '✨' }}</div>
-      <h2 class="welcome-title">{{ data.title || '¡Operación Exitosa!' }}</h2>
+      <h2 class="welcome-title" [style.color]="data.titleColor || 'var(--primary-pink)'">{{ data.title || '¡Operación Exitosa!' }}</h2>
       <p class="welcome-message">{{ data.message }}</p>
       
       <div class="welcome-actions">
-        <button mat-flat-button class="start-selling-btn" color="primary" (click)="dialogRef.close()">
-          <mat-icon>check_circle</mat-icon> Continuar
+        <button mat-flat-button class="start-selling-btn" [color]="data.btnColor || 'primary'" (click)="dialogRef.close(true)">
+          <mat-icon>{{ data.btnIcon || 'check_circle' }}</mat-icon> {{ data.btnText || 'Continuar' }}
+        </button>
+        <button mat-button class="cancel-btn" *ngIf="data.showCancel" (click)="dialogRef.close(false)">
+          Cancelar
         </button>
       </div>
     </div>
@@ -51,6 +54,11 @@ import { MatIconModule } from '@angular/material/icon';
       border-radius: 12px; 
       font-weight: bold; 
       box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3); 
+    }
+    .cancel-btn {
+      margin-top: 10px;
+      width: 100%;
+      color: #777;
     }
     @keyframes bounce { 
       0%, 100% { transform: translateY(0); } 
