@@ -86,9 +86,11 @@ import { provideNativeDateAdapter } from '@angular/material/core';
         </div>
       </form>
     </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">Cancelar</button>
-      <button mat-flat-button color="warn" [disabled]="form.invalid" (click)="onSave()">Confirmar Gasto</button>
+    <mat-dialog-actions class="custom-actions">
+      <button mat-button class="cancel-btn" (click)="onCancel()">Cancelar</button>
+      <button mat-flat-button class="save-btn" [disabled]="form.invalid" (click)="onSave()">
+        <mat-icon>payments</mat-icon> REGISTRAR GASTO
+      </button>
     </mat-dialog-actions>
   `,
   styles: [`
@@ -112,6 +114,37 @@ import { provideNativeDateAdapter } from '@angular/material/core';
     ::ng-deep .pink-datepicker .mat-calendar-arrow { fill: #C2185B !important; }
     ::ng-deep .pink-datepicker .mat-icon-button { color: #C2185B !important; }
     ::ng-deep .pink-datepicker .mat-calendar-previous-button, ::ng-deep .pink-datepicker .mat-calendar-next-button { color: #C2185B !important; }
+
+    mat-dialog-content { max-height: 65vh; overflow-y: auto; }
+    
+    .custom-actions {
+      padding: 16px 24px !important;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .save-btn {
+      width: 100% !important;
+      padding: 25px !important;
+      border-radius: 12px !important;
+      font-weight: 800 !important;
+      font-size: 16px !important;
+      background-color: #e91e63 !important;
+      color: white !important;
+      letter-spacing: 1px;
+    }
+
+    .save-btn[disabled] {
+      background-color: #ccc !important;
+      color: #777 !important;
+      opacity: 0.6;
+    }
+
+    .cancel-btn {
+      width: 100% !important;
+      color: #888 !important;
+    }
   `]
 })
 export class GastoDialog implements OnInit {
@@ -129,7 +162,7 @@ export class GastoDialog implements OnInit {
   usuarios: Usuario[] = [];
 
   form: FormGroup = this.fb.group({
-    sesionId: [this.data?.sesionId || 1, Validators.required],
+    sesionId: [this.data?.sesionId || null],
     categoriaGastoId: ['', Validators.required],
     subcategoriaGastoId: [null],
     monto: ['', [Validators.required, Validators.min(1)]],
@@ -149,7 +182,13 @@ export class GastoDialog implements OnInit {
       this.usuarioService.obtenerTodos().subscribe(res => {
         this.usuarios = res.filter(u => u.activo);
       });
+      // Para admin, la sesión no es obligatoria ya que se resuelve por usuarioId
+      this.form.get('sesionId')?.clearValidators();
+    } else {
+      // Para cajeros, la sesión sí es obligatoria
+      this.form.get('sesionId')?.setValidators(Validators.required);
     }
+    this.form.get('sesionId')?.updateValueAndValidity();
 
     this.form.get('categoriaGastoId')?.valueChanges.subscribe(catId => {
       // Limpiar subcategoría al cambiar categoría

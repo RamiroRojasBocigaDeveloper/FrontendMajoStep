@@ -205,51 +205,63 @@ export class Gastos implements OnInit {
     const user = this.authService.getCurrentUser();
     if (!user) return;
 
-    this.loading = true;
-    this.sesionService.obtenerSesionActiva(user.id).subscribe({
-      next: (sesion) => {
-        this.loading = false;
-        const dialogRef = this.dialog.open(GastoDialog, {
-          width: '400px',
-          data: { sesionId: sesion.id }
-        });
+    if (this.isAdmin()) {
+      // Los administradores pueden abrir el diálogo directamente
+      this.ejecutarAbrirDialogo(null);
+    } else {
+      this.loading = true;
+      this.sesionService.obtenerSesionActiva(user.id).subscribe({
+        next: (sesion) => {
+          this.loading = false;
+          this.ejecutarAbrirDialogo(sesion.id);
+        },
+        error: () => {
+          this.loading = false;
+          const dialogRef = this.dialog.open(SuccessDialog, {
+            width: '420px',
+            data: { 
+              icon: '❌',
+              title: 'Caja Cerrada', 
+              titleColor: '#d32f2f',
+              message: 'No puedes registrar gastos si tu caja no está abierta. ¿Quieres ir a la sección de ventas para abrir tu turno?',
+              btnText: 'SÍ, IR A VENTAS',
+              btnIcon: 'point_of_sale',
+              showCancel: true
+            }
+          });
 
-        dialogRef.afterClosed().subscribe((result: any) => {
-          if (result) {
-            this.gastoService.crear(result).subscribe({
-              next: () => {
-                this.dialog.open(SuccessDialog, {
-                  width: '420px',
-                  data: { 
-                    icon: '💸',
-                    title: 'Gasto Registrado', 
-                    message: 'El gasto se ha guardado en la sesión actual.' 
-                  }
-                });
-                this.cargarGastos();
+          dialogRef.afterClosed().subscribe(confirm => {
+            if (confirm) {
+              this.router.navigate(['/ventas']);
+            }
+          });
+        }
+      });
+    }
+  }
+
+  private ejecutarAbrirDialogo(sesionId: number | null) {
+    const dialogRef = this.dialog.open(GastoDialog, {
+      width: '400px',
+      data: { sesionId }
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        this.gastoService.crear(result).subscribe({
+          next: () => {
+            this.dialog.open(SuccessDialog, {
+              width: '420px',
+              data: { 
+                icon: '💸',
+                title: 'Gasto Registrado', 
+                message: 'El gasto se ha guardado correctamente.' 
               }
             });
-          }
-        });
-      },
-      error: () => {
-        this.loading = false;
-        const dialogRef = this.dialog.open(SuccessDialog, {
-          width: '420px',
-          data: { 
-            icon: '❌',
-            title: 'Caja Cerrada', 
-            titleColor: '#d32f2f',
-            message: 'No puedes registrar gastos si tu caja no está abierta. ¿Quieres ir a la sección de ventas para abrir tu turno?',
-            btnText: 'SÍ, IR A VENTAS',
-            btnIcon: 'point_of_sale',
-            showCancel: true
-          }
-        });
-
-        dialogRef.afterClosed().subscribe(confirm => {
-          if (confirm) {
-            this.router.navigate(['/ventas']);
+            this.cargarGastos();
+          },
+          error: (err) => {
+            this.snackBar.open('Error al registrar gasto: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
           }
         });
       }
