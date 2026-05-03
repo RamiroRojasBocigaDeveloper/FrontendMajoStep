@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, signal, ChangeDetectorRef, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,11 +10,42 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MAT_DATE_FORMATS, MAT_DATE_LOCALE, NativeDateAdapter, DateAdapter } from '@angular/material/core';
 import { ReporteService, DashboardResponse } from './reporte';
+
+/** Custom DateAdapter to force DD/MM/YYYY format */
+export class CustomDateAdapter extends NativeDateAdapter {
+  override format(date: Date, displayFormat: Object): string {
+    if (displayFormat === 'input') {
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    return date.toDateString();
+  }
+}
+
+export const MY_FORMATS = {
+  parse: {
+    dateInput: { month: 'short', year: 'numeric', day: 'numeric' },
+  },
+  display: {
+    dateInput: 'input',
+    monthYearLabel: { year: 'numeric', month: 'short' },
+    dateA11yLabel: { year: 'numeric', month: 'long', day: 'numeric' },
+    monthYearA11yLabel: { year: 'numeric', month: 'long' },
+  },
+};
 
 @Component({
   selector: 'app-reportes',
   standalone: true,
+  providers: [
+    { provide: DateAdapter, useClass: CustomDateAdapter },
+    { provide: MAT_DATE_LOCALE, useValue: 'es-ES' },
+    { provide: MAT_DATE_FORMATS, useValue: MY_FORMATS },
+  ],
   imports: [
     CommonModule,
     MatCardModule,
@@ -40,14 +71,14 @@ import { ReporteService, DashboardResponse } from './reporte';
             <mat-label>Fecha Inicio</mat-label>
             <input matInput [matDatepicker]="startPicker" [formControl]="range.controls.start" [max]="range.controls.end.value || today" (dateChange)="cargarReporte()">
             <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker></mat-datepicker>
+            <mat-datepicker #startPicker panelClass="white-datepicker"></mat-datepicker>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="date-picker-single">
             <mat-label>Fecha Fin</mat-label>
             <input matInput [matDatepicker]="endPicker" [formControl]="range.controls.end" [min]="range.controls.start.value!" [max]="today" (dateChange)="cargarReporte()">
             <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker #endPicker></mat-datepicker>
+            <mat-datepicker #endPicker panelClass="white-datepicker"></mat-datepicker>
           </mat-form-field>
           
           <div class="quick-filters">
@@ -226,42 +257,69 @@ import { ReporteService, DashboardResponse } from './reporte';
           </mat-card-content>
        </mat-card>
 
-       <mat-card class="luxury-table-card expense-details">
+        <mat-card class="luxury-table-card expense-details">
           <mat-card-header>
-            <mat-card-title>Detalle Consolidado de Gastos</mat-card-title>
+            <mat-card-title>Desglose Jerárquico de Gastos</mat-card-title>
           </mat-card-header>
           <mat-card-content>
             <div class="table-container">
+              <div *ngFor="let group of gastosJerarquicos()" class="expense-group">
+                <div class="expense-group-header">
+                  <span class="expense-cat-name">{{group.categoria}}</span>
+                  <span class="expense-cat-total">{{group.total | currency:'USD':'symbol':'1.0-0'}}</span>
+                </div>
+                <div *ngFor="let sub of group.subItems" class="expense-sub-row">
+                  <span class="expense-sub-name">{{sub.nombre}}</span>
+                  <span class="expense-sub-monto">{{sub.monto | currency:'USD':'symbol':'1.0-0'}}</span>
+                </div>
+              </div>
+              
               <table class="premium-table">
-                <thead>
-                  <tr>
-                    <th>Categoría</th>
-                    <th class="text-right">Inversión</th>
-                    <th>Distribución</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let item of gastosPorCategoria()">
-                    <td class="category-name">{{item.nombre}}</td>
-                    <td class="text-right monto-negativo">{{item.monto | currency:'USD':'symbol':'1.0-0'}}</td>
-                    <td>
-                       <div class="progress-bar-small">
-                          <div class="progress-fill expense" [style.width.%]="(item.monto / ((data()?.totalGastos || 0) + (data()?.totalSueldos || 1))) * 100"></div>
-                       </div>
+                <tfoot>
+                  <tr class="total-row-final">
+                    <td style="padding: 15px; font-weight: 800;">TOTAL GENERAL EGRESOS</td>
+                    <td class="text-right" style="padding: 15px; font-weight: 800;">
+                      {{(data()?.totalGastos || 0) + (data()?.totalSueldos || 0) | currency:'USD':'symbol':'1.0-0'}}
                     </td>
                   </tr>
-                </tbody>
-                <tfoot>
-                   <tr class="total-row">
-                      <td>TOTAL EGRESOS</td>
-                      <td class="text-right">{{(data()?.totalGastos || 0) + (data()?.totalSueldos || 0) | currency:'USD':'symbol':'1.0-0'}}</td>
-                      <td></td>
-                   </tr>
                 </tfoot>
               </table>
             </div>
           </mat-card-content>
-       </mat-card>
+        </mat-card>
+    </div>
+
+    <!-- FULL DETAILED EXPENSES TABLE -->
+    <div class="bottom-grid" *ngIf="data() && data()?.detalleGastos">
+      <mat-card class="luxury-table-card full-width-card">
+        <mat-card-header>
+          <mat-card-title>Historial Detallado de Egresos</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="table-container">
+            <table class="premium-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Categoría</th>
+                  <th>Descripción</th>
+                  <th>Responsable/Origen</th>
+                  <th class="text-right">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let g of data()?.detalleGastos">
+                  <td class="date-col">{{(g.fechaRegistroManual || g.createdAt) | date:'dd/MM/yyyy HH:mm'}}</td>
+                  <td><span class="category-name">{{g.categoriaGastoNombre}}</span></td>
+                  <td class="desc-col">{{g.descripcion}}</td>
+                  <td><span class="user-pill">{{g.nombreUsuario || 'Admin'}}</span></td>
+                  <td class="text-right monto-negativo">{{g.monto | currency:'USD':'symbol':'1.0-0'}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </mat-card-content>
+      </mat-card>
     </div>
   `,
   styles: [`
@@ -378,6 +436,93 @@ import { ReporteService, DashboardResponse } from './reporte';
 
     .total-row td { background: #fffafb; font-weight: 800; color: #C2185B; border-top: 2px solid #C2185B; }
     .empty-state { padding: 40px; text-align: center; color: #999; font-style: italic; }
+
+    .full-width-card { margin-top: 25px; margin-bottom: 25px; grid-column: 1 / -1; }
+    .user-pill {
+      background: #f3e5f5;
+      color: #7b1fa2;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .date-col { color: #888; font-size: 12px; }
+    .desc-col { max-width: 300px; white-space: normal; line-height: 1.4; color: #555; }
+
+    .expense-group { margin-bottom: 8px; border-bottom: 1px solid #f5f5f5; padding-bottom: 8px; }
+    .expense-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 10px;
+      background: #fff5f7;
+      border-radius: 10px;
+      margin-bottom: 4px;
+    }
+    .expense-cat-name { font-weight: 800; color: #C2185B; font-size: 14px; }
+    .expense-cat-total { font-weight: 800; color: #d32f2f; font-size: 14px; }
+    .expense-sub-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 10px 8px 35px;
+      border-bottom: 1px solid #fafafa;
+    }
+    .expense-sub-name { color: #555; font-weight: 600; font-size: 13px; }
+    .expense-sub-name::before { content: '└  '; color: #ccc; }
+    .expense-sub-monto { color: #d32f2f; font-weight: 600; font-size: 13px; }
+    .total-row-final {
+      background: linear-gradient(135deg, #fce4ec, #fff5f7) !important;
+      border-top: 2px solid #C2185B;
+      margin-top: 10px;
+    }
+
+    ::ng-deep .white-datepicker { 
+      background: #ffffff !important; 
+      border-radius: 16px !important; 
+      overflow: visible !important; 
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15) !important;
+      border: 1px solid #e0e0e0 !important;
+      padding: 8px !important;
+    }
+    ::ng-deep .white-datepicker .mat-calendar { 
+      background: #ffffff !important; 
+    }
+    ::ng-deep .white-datepicker .mat-calendar-header {
+      color: #333 !important;
+    }
+    ::ng-deep .white-datepicker .mat-calendar-body-cell-content { 
+      color: #333333 !important; 
+      border-radius: 8px !important;
+    }
+    ::ng-deep .white-datepicker .mat-calendar-table-header { 
+      color: #999 !important; 
+    }
+    ::ng-deep .white-datepicker .mat-calendar-body-selected { 
+      background-color: #C2185B !important; 
+      color: white !important; 
+      font-weight: bold; 
+    }
+    ::ng-deep .white-datepicker .mat-calendar-body-today:not(.mat-calendar-body-selected) { 
+      border-color: #C2185B !important; 
+    }
+    ::ng-deep .white-datepicker .mat-calendar-period-button { 
+      color: #C2185B !important; 
+      font-weight: 800 !important; 
+    }
+    ::ng-deep .white-datepicker .mat-calendar-arrow { 
+      fill: #C2185B !important; 
+    }
+    /* Selectores para botones de navegación MDC */
+    ::ng-deep .white-datepicker .mat-mdc-button,
+    ::ng-deep .white-datepicker .mat-mdc-icon-button {
+      color: #C2185B !important;
+    }
+    ::ng-deep .white-datepicker .mat-calendar-previous-button,
+    ::ng-deep .white-datepicker .mat-calendar-next-button {
+      color: #C2185B !important;
+      opacity: 1 !important;
+    }
   `]
 })
 export class Reportes implements OnInit {
@@ -451,4 +596,14 @@ export class Reportes implements OnInit {
     return Object.entries(list).map(([nombre, monto]) => ({ nombre, monto }))
       .sort((a, b) => b.monto - a.monto);
   }
+
+  gastosJerarquicos = computed(() => {
+    const map = this.data()?.gastosDesglosados || {};
+    return Object.entries(map).map(([categoria, subMap]) => {
+      const subItems = Object.entries(subMap).map(([nombre, monto]) => ({ nombre, monto }))
+        .sort((a, b) => b.monto - a.monto);
+      const total = subItems.reduce((sum, s) => sum + s.monto, 0);
+      return { categoria, total, subItems };
+    }).sort((a, b) => b.total - a.total);
+  });
 }

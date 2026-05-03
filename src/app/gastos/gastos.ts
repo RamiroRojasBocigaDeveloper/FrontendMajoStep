@@ -42,8 +42,13 @@ import { SuccessDialog } from '../shared/success-dialog';
       <mat-card-content>
         <table mat-table [dataSource]="gastos()" class="full-width">
           <ng-container matColumnDef="fecha">
-            <th mat-header-cell *matHeaderCellDef> Fecha </th>
-            <td mat-cell *matCellDef="let g"> {{g.createdAt | date:'short'}} </td>
+            <th mat-header-cell *matHeaderCellDef> Fechas (Negocio / Registro) </th>
+            <td mat-cell *matCellDef="let g"> 
+              <div class="date-container">
+                <span class="hist-date" title="Fecha de Negocio">{{(g.fechaRegistroManual || g.createdAt) | date:'dd/MM/yyyy'}}</span>
+                <span class="system-date" title="Fecha de Registro en Sistema">{{g.createdAt | date:'shortTime'}} ({{g.createdAt | date:'dd/MM'}})</span>
+              </div>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="descripcion">
@@ -143,6 +148,21 @@ import { SuccessDialog } from '../shared/success-dialog';
       border-radius: 12px;
       font-size: 15px;
       letter-spacing: 0.5px;
+    }
+    .date-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .hist-date {
+      font-weight: 700;
+      color: #333;
+      font-size: 13px;
+    }
+    .system-date {
+      font-size: 10px;
+      color: #999;
+      font-style: italic;
     }
   `]
 })

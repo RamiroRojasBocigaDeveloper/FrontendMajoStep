@@ -16,6 +16,18 @@ export interface DashboardResponse {
   gananciasPorCategoria: { [key: string]: number };
   gastosPorCategoria: { [key: string]: number };
   productosMasVendidos: { [key: string]: number };
+  gastosDesglosados: { [categoria: string]: { [subItem: string]: number } };
+  detalleGastos: GastoResponse[];
+}
+
+export interface GastoResponse {
+  id: number;
+  monto: number;
+  descripcion: string;
+  categoriaGastoNombre: string;
+  nombreUsuario: string;
+  createdAt: string;
+  fechaRegistroManual?: string;
 }
 
 @Injectable({
