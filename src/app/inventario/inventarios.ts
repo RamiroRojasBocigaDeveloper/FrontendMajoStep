@@ -267,7 +267,7 @@ import { SuccessDialog } from '../shared/success-dialog';
       display: inline-block;
       box-shadow: 0 2px 4px rgba(123, 31, 162, 0.1);
     }
-    .cat-nina { background-color: #f48fb1 !important; color: #880e4f !important; font-weight: 800 !important; }
+    .cat-nina { background-color: #ffd600 !important; color: #212121 !important; font-weight: 800 !important; border: 1px solid #ffab00; }
     .cat-mujer { background-color: #d81b60 !important; color: #ffffff !important; font-weight: 700 !important; }
     .cat-nino { background-color: #03a9f4 !important; color: #ffffff !important; font-weight: 700 !important; }
     .cat-hombre { background-color: #0d47a1 !important; color: #ffffff !important; font-weight: 700 !important; }

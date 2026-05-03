@@ -12,7 +12,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
-import { MatDialogModule, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
+import { MatDialogModule, MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -31,6 +31,112 @@ import { ImagePreviewDialog } from '../shared/image-preview-dialog';
 interface ItemCarrito extends Producto {
   cantidadVenta: number;
   precioUnitario: number;
+}
+
+@Component({
+  selector: 'app-venta-historial-dialog',
+  standalone: true,
+  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule, MatDialogModule, MatDatepickerModule, MatNativeDateModule, MatFormFieldModule, MatInputModule, ReactiveFormsModule],
+  template: `
+    <div class="historial-wrapper">
+      <h2 mat-dialog-title>Historial de Ventas</h2>
+      
+      <div class="filters">
+        <mat-form-field appearance="outline">
+          <mat-label>Desde</mat-label>
+          <input matInput [matDatepicker]="picker1" [formControl]="fechaInicio">
+          <mat-datepicker-toggle matSuffix [for]="picker1"></mat-datepicker-toggle>
+          <mat-datepicker #picker1></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Hasta</mat-label>
+          <input matInput [matDatepicker]="picker2" [formControl]="fechaFin">
+          <mat-datepicker-toggle matSuffix [for]="picker2"></mat-datepicker-toggle>
+          <mat-datepicker #picker2></mat-datepicker>
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" (click)="buscar()" [disabled]="loading">
+          <mat-icon>search</mat-icon> Buscar
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table mat-table [dataSource]="ventas()" class="full-width">
+          <ng-container matColumnDef="factura">
+            <th mat-header-cell *matHeaderCellDef> Factura </th>
+            <td mat-cell *matCellDef="let v"> {{v.numeroFactura}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef> Fecha </th>
+            <td mat-cell *matCellDef="let v"> {{v.createdAt | date:'short'}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="total">
+            <th mat-header-cell *matHeaderCellDef> Total </th>
+            <td mat-cell *matCellDef="let v"> {{v.total | currency}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef> - </th>
+            <td mat-cell *matCellDef="let v">
+              <button mat-icon-button color="accent" (click)="seleccionar(v)">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="['factura', 'fecha', 'total', 'acciones']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['factura', 'fecha', 'total', 'acciones'];"></tr>
+        </table>
+        <div *ngIf="ventas().length === 0 && !loading" class="empty">No hay ventas en este rango.</div>
+        <div *ngIf="loading" class="empty">Cargando...</div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .historial-wrapper { padding: 20px; max-height: 80vh; display: flex; flex-direction: column; }
+    .filters { display: flex; gap: 10px; align-items: baseline; margin-bottom: 20px; }
+    .table-container { flex: 1; overflow-y: auto; min-height: 300px; }
+    .empty { text-align: center; padding: 40px; color: #999; }
+    ::ng-deep .mat-mdc-dialog-content { max-height: none !important; }
+  `]
+})
+export class VentaHistorialDialog implements OnInit {
+  private ventaService = inject(VentaService);
+  dialogRef = inject(MatDialogRef<VentaHistorialDialog>);
+  
+  fechaInicio = new FormControl(new Date());
+  fechaFin = new FormControl(new Date());
+  ventas = signal<any[]>([]);
+  loading = false;
+
+  ngOnInit() {
+    this.buscar();
+  }
+
+  buscar() {
+    if (!this.fechaInicio.value || !this.fechaFin.value) return;
+    
+    this.loading = true;
+    const inicio = new Date(this.fechaInicio.value);
+    inicio.setHours(0,0,0,0);
+    const fin = new Date(this.fechaFin.value);
+    fin.setHours(23,59,59,999);
+
+    this.ventaService.obtenerPorRango(inicio.toISOString(), fin.toISOString()).subscribe({
+      next: (res) => {
+        this.ventas.set(res);
+        this.loading = false;
+      },
+      error: () => this.loading = false
+    });
+  }
+
+  seleccionar(venta: any) {
+    this.dialogRef.close(venta);
+  }
 }
 
 @Component({
@@ -55,13 +161,17 @@ interface ItemCarrito extends Producto {
     MatTooltipModule
   ],
   template: `
-    <div class="venta-grid" *ngIf="sesionActiva(); else cajaCerrada">
+    <div class="venta-grid" *ngIf="sesionActiva() || isAdmin(); else cajaCerrada">
       <!-- Sección Izquierda: Buscador y Carrito -->
       <div class="pos-section">
         <mat-card class="pink-card">
           <mat-card-header>
             <mat-icon mat-card-avatar color="primary">search</mat-icon>
             <mat-card-title>Buscador de Calzado</mat-card-title>
+            <span class="spacer"></span>
+            <button mat-stroked-button color="primary" *ngIf="isAdmin()" (click)="abrirHistorial()">
+              <mat-icon>history</mat-icon> Historial / Editar
+            </button>
           </mat-card-header>
           
           <mat-card-content>
@@ -166,8 +276,13 @@ interface ItemCarrito extends Producto {
         <mat-card class="total-card">
           <mat-card-content>
             <div class="total-row">
-              <span class="label">Total a Pagar</span>
-              <span class="value">{{ calcularTotal() | currency:'USD' }}</span>
+              <span class="label">{{ editMode() ? 'Editando Factura' : 'Total a Pagar' }}</span>
+              <span class="value" *ngIf="!editMode()">{{ calcularTotal() | currency:'USD' }}</span>
+              <span class="edit-factura" *ngIf="editMode()">{{ facturaEnEdicion() }}</span>
+            </div>
+            <div class="total-row" *ngIf="editMode()">
+               <span class="label">Nuevo Total</span>
+               <span class="value">{{ calcularTotal() | currency:'USD' }}</span>
             </div>
             <mat-divider></mat-divider>
             <div class="items-count">
@@ -210,8 +325,12 @@ interface ItemCarrito extends Producto {
             <button mat-raised-button class="checkout-btn" 
                     [disabled]="carrito().length === 0 || loading || !metodoPagoSeleccionado"
                     (click)="finalizarVenta()">
-              <mat-icon>check_circle</mat-icon>
-              {{ loading ? 'Procesando...' : 'FINALIZAR VENTA' }}
+              <mat-icon>{{ editMode() ? 'save' : 'check_circle' }}</mat-icon>
+              {{ loading ? 'Procesando...' : (editMode() ? 'GUARDAR CAMBIOS' : 'FINALIZAR VENTA') }}
+            </button>
+
+            <button mat-button class="cancel-edit-btn" *ngIf="editMode()" (click)="cancelarEdicion()">
+               <mat-icon>close</mat-icon> Cancelar Edición
             </button>
           </mat-card-content>
         </mat-card>
@@ -270,6 +389,7 @@ interface ItemCarrito extends Producto {
     }
     .total-row .label { font-size: 14px; opacity: 0.9; }
     .total-row .value { font-size: 48px; font-weight: 800; color: var(--primary-pink); }
+    .edit-factura { font-size: 20px; font-weight: 800; color: #333; margin-top: 5px; }
     
     .checkout-btn {
       width: 100%;
@@ -386,6 +506,8 @@ interface ItemCarrito extends Producto {
       border-radius: 12px;
       font-weight: bold;
     }
+    .spacer { flex: 1 1 auto; }
+    .cancel-edit-btn { width: 100%; margin-top: 10px; color: #666; }
   `]
 })
 export class Ventas implements OnInit {
@@ -399,6 +521,9 @@ export class Ventas implements OnInit {
   carrito = signal<ItemCarrito[]>([]);
   sesionActiva = signal<SesionTrabajo | null>(null);
   usuarios = signal<Usuario[]>([]);
+  editMode = signal(false);
+  facturaEnEdicion = signal('');
+  ventaIdEnEdicion = signal<number | null>(null);
   displayedColumns: string[] = ['producto', 'precio', 'cantidad', 'subtotal', 'acciones'];
 
   private productoService = inject(ProductoService);
@@ -555,8 +680,16 @@ export class Ventas implements OnInit {
 
   finalizarVenta() {
     const sesion = this.sesionActiva();
-    if (!sesion) {
+    
+    // Si no es admin y no hay sesión, bloquear
+    if (!this.isAdmin() && !sesion) {
       this.snackBar.open('Error: Caja cerrada.', 'Cerrar');
+      return;
+    }
+
+    // Si es admin, no tiene sesión y no seleccionó vendedor, bloquear
+    if (this.isAdmin() && !sesion && !this.vendedorSeleccionado.value) {
+      this.snackBar.open('Debes seleccionar un vendedor o abrir tu propia caja.', 'Cerrar');
       return;
     }
 
@@ -572,7 +705,6 @@ export class Ventas implements OnInit {
     }
 
     const request: any = {
-      sesionId: sesion.id,
       metodoPagoId: this.metodoPagoSeleccionado,
       descuento: 0,
       detalles: this.carrito().map(item => ({
@@ -581,6 +713,10 @@ export class Ventas implements OnInit {
         precioUnitario: item.precioUnitario
       }))
     };
+
+    if (sesion) {
+      request.sesionId = sesion.id;
+    }
 
     if (fhStr) {
       request.fechaHistorica = fhStr;
@@ -592,9 +728,13 @@ export class Ventas implements OnInit {
 
     const agotados = this.carrito().filter(p => p.cantidadVenta >= p.stockActual).map(p => p.nombre);
 
-    this.ventaService.procesarVenta(request).subscribe({
+    const obs = this.editMode() 
+      ? this.ventaService.actualizarVenta(this.ventaIdEnEdicion()!, request)
+      : this.ventaService.procesarVenta(request);
+
+    obs.subscribe({
       next: () => {
-        let msg = 'La venta se ha registrado correctamente.';
+        let msg = this.editMode() ? 'La venta se ha actualizado correctamente.' : 'La venta se ha registrado correctamente.';
         if (agotados.length > 0) {
           msg += ` ⚠️ ATENCIÓN: Poner en reposición: ${agotados.join(', ')}`;
         }
@@ -603,18 +743,63 @@ export class Ventas implements OnInit {
           width: '420px',
           data: { 
             icon: '🛍️',
-            title: '¡Venta Exitosa!', 
+            title: this.editMode() ? '¡Venta Actualizada!' : '¡Venta Exitosa!', 
             message: msg 
           }
         });
         
         this.carrito.set([]);
         this.loading = false;
+        this.editMode.set(false);
+        this.ventaIdEnEdicion.set(null);
       },
       error: (err: any) => {
         this.loading = false;
         this.snackBar.open('Error al procesar la venta: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
       }
     });
+  }
+
+  abrirHistorial() {
+    const dialogRef = this.dialog.open(VentaHistorialDialog, {
+      width: '800px'
+    });
+
+    dialogRef.afterClosed().subscribe(venta => {
+      if (venta) {
+        this.cargarVentaParaEdicion(venta);
+      }
+    });
+  }
+
+  cargarVentaParaEdicion(venta: any) {
+    this.editMode.set(true);
+    this.ventaIdEnEdicion.set(venta.id);
+    this.facturaEnEdicion.set(venta.numeroFactura);
+    this.metodoPagoSeleccionado = venta.metodoPagoId;
+    this.vendedorSeleccionado.setValue(venta.usuarioId || null);
+    
+    const items: ItemCarrito[] = venta.detalles.map((d: any) => ({
+      id: d.productoId,
+      nombre: d.productoNombre,
+      referencia: d.productoReferencia,
+      precioVenta: d.precioUnitario,
+      precioUnitario: d.precioUnitario,
+      cantidadVenta: d.cantidad,
+      stockActual: 999, // Para permitir editar sin bloqueo de stock inmediato
+      imagenUrl: '' // No viene en el detalle resumido, opcional
+    }));
+
+    this.carrito.set(items);
+    this.snackBar.open(`Editando factura ${venta.numeroFactura}`, 'OK', { duration: 3000 });
+  }
+
+  cancelarEdicion() {
+    this.editMode.set(false);
+    this.ventaIdEnEdicion.set(null);
+    this.facturaEnEdicion.set('');
+    this.carrito.set([]);
+    this.metodoPagoSeleccionado = this.metodosPago[0]?.id || 1;
+    this.vendedorSeleccionado.setValue(null);
   }
 }
