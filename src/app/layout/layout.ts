@@ -124,7 +124,7 @@ export class ConfirmLogoutDialog {
             <span matListItemTitle>Inventario</span>
           </a>
 
-          <a mat-list-item routerLink="/categorias" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
+          <a mat-list-item routerLink="/categorias" routerLinkActive="active-link" *ngIf="isAdmin() || isJefe()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>category</mat-icon>
             <span matListItemTitle>Categorías</span>
           </a>

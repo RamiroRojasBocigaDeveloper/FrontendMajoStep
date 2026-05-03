@@ -18,7 +18,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'ventas', component: Ventas },
-      { path: 'categorias', component: Categorias },
+      { path: 'categorias', component: Categorias, data: { expectedRoles: ['ADMINISTRADOR', 'JEFE'] } },
       { path: 'inventario', component: Inventarios },
       { path: 'gastos', component: Gastos },
       { path: 'reportes', component: Reportes, data: { expectedRoles: ['ADMINISTRADOR', 'JEFE'] } },
