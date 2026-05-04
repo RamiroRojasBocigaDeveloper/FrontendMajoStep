@@ -1,4 +1,6 @@
-import { Component, inject, OnInit, signal, ChangeDetectorRef, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, ChangeDetectorRef, computed, AfterViewInit, ElementRef, ViewChild, NgZone, OnDestroy } from '@angular/core';
+import { Chart, registerables } from 'chart.js';
+Chart.register(...registerables);
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -96,7 +98,6 @@ export const MY_FORMATS = {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     </div>
 
-    <!-- PREMIUM KPI CARDS -->
     <div class="kpi-container" *ngIf="data()">
       <div class="kpi-card-luxury sales-card">
         <div class="kpi-icon">📈</div>
@@ -131,6 +132,83 @@ export const MY_FORMATS = {
           </h2>
         </div>
       </div>
+    </div>
+
+    <!-- SECCIÓN DE GRÁFICAS DE DISTRIBUCIÓN -->
+    <div class="charts-grid-triple" *ngIf="data()">
+       <mat-card class="luxury-table-card chart-card">
+          <mat-card-header>
+            <mat-card-title>Distribución de Ventas</mat-card-title>
+          </mat-card-header>
+          <mat-card-content class="chart-content">
+            <canvas #catChart></canvas>
+          </mat-card-content>
+       </mat-card>
+
+       <mat-card class="luxury-table-card chart-card">
+          <mat-card-header>
+            <mat-card-title>Distribución de Ganancias</mat-card-title>
+          </mat-card-header>
+          <mat-card-content class="chart-content">
+            <canvas #profitChart></canvas>
+          </mat-card-content>
+       </mat-card>
+
+       <mat-card class="luxury-table-card chart-card">
+          <mat-card-header>
+            <mat-card-title>Distribución de Gastos</mat-card-title>
+          </mat-card-header>
+          <mat-card-content class="chart-content">
+            <canvas #expChart></canvas>
+          </mat-card-content>
+       </mat-card>
+    </div>
+
+    <!-- BALANCE Y TOP PRODUCTOS -->
+    <div class="charts-grid" *ngIf="data()">
+       <mat-card class="luxury-table-card chart-card">
+          <mat-card-header>
+            <mat-card-title>Balance Ingresos vs Egresos</mat-card-title>
+          </mat-card-header>
+          <mat-card-content class="chart-content">
+            <canvas #compChart></canvas>
+          </mat-card-content>
+       </mat-card>
+
+       <mat-card class="luxury-table-card top-products">
+          <mat-card-header>
+            <mat-card-title>Top Productos Vendidos</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="table-container">
+              <table class="premium-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Producto</th>
+                    <th class="text-right">Unidades</th>
+                    <th>Popularidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of productosMasVendidos(); let i = index">
+                    <td><span class="rank-badge">{{i + 1}}</span></td>
+                    <td>{{item.nombre}}</td>
+                    <td class="text-right">{{item.cantidad}}</td>
+                    <td class="progress-col">
+                       <div class="progress-bar-small">
+                          <div class="progress-fill" [style.width.%]="(item.cantidad / (productosMasVendidos()[0].cantidad || 1)) * 100"></div>
+                       </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div *ngIf="productosMasVendidos().length === 0" class="empty-state">
+               No hay ventas registradas en este período.
+            </div>
+          </mat-card-content>
+       </mat-card>
     </div>
 
     <!-- TABLES SECTION (REPLACING CHARTS) -->
@@ -220,43 +298,8 @@ export const MY_FORMATS = {
       </mat-card>
     </div>
 
-    <!-- TOP PRODUCTS AND EXPENSE DETAILS -->
+    <!-- EXPENSE DETAILS -->
     <div class="bottom-grid" *ngIf="data()">
-       <mat-card class="luxury-table-card top-products">
-          <mat-card-header>
-            <mat-card-title>Top Productos Vendidos</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="table-container">
-              <table class="premium-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Producto</th>
-                    <th class="text-right">Unidades</th>
-                    <th>Popularidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let item of productosMasVendidos(); let i = index">
-                    <td><span class="rank-badge">{{i + 1}}</span></td>
-                    <td>{{item.nombre}}</td>
-                    <td class="text-right">{{item.cantidad}}</td>
-                    <td class="progress-col">
-                       <div class="progress-bar-small">
-                          <div class="progress-fill" [style.width.%]="(item.cantidad / (productosMasVendidos()[0].cantidad || 1)) * 100"></div>
-                       </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div *ngIf="productosMasVendidos().length === 0" class="empty-state">
-               No hay ventas registradas en este período.
-            </div>
-          </mat-card-content>
-       </mat-card>
-
         <mat-card class="luxury-table-card expense-details">
           <mat-card-header>
             <mat-card-title>Desglose Jerárquico de Gastos</mat-card-title>
@@ -288,6 +331,59 @@ export const MY_FORMATS = {
           </mat-card-content>
         </mat-card>
     </div>
+
+    <!-- VENTAS DETALLADAS -->
+    <mat-card class="luxury-table-card full-width-card" *ngIf="data()">
+       <mat-card-header>
+         <div class="chart-title-group">
+            <span class="chart-emoji">🧾</span>
+            <mat-card-title>Historial Detallado de Ventas ({{data()?.detalleVentas?.length || 0}})</mat-card-title>
+         </div>
+       </mat-card-header>
+       <mat-card-content>
+          <div class="table-container">
+             <table class="premium-table">
+                <thead>
+                   <tr>
+                      <th style="color: var(--primary-pink)">Ref.</th>
+                      <th style="color: var(--primary-pink)">Producto / Categoría</th>
+                      <th>Fecha (Negocio/Reg)</th>
+                      <th>Vendedor</th>
+                      <th class="text-right">Total</th>
+                   </tr>
+                </thead>
+                <tbody>
+                   <tr *ngFor="let v of data()?.detalleVentas">
+                      <td>
+                         <div *ngFor="let d of v.detalles">
+                            <span class="ref-text">{{d.productoReferencia}}</span>
+                         </div>
+                      </td>
+                      <td>
+                         <div *ngFor="let d of v.detalles" class="prod-info-mini">
+                            <strong>{{d.productoNombre}}</strong>
+                            <span class="cat-badge-mini" [style.background-color]="getCategoryColor(d.categoriaNombre)">
+                               {{d.categoriaNombre}}
+                            </span>
+                         </div>
+                      </td>
+                      <td>
+                         <div class="date-col">
+                            <strong>{{(v.fechaRegistroManual || v.createdAt) | date:'dd/MM/yyyy'}}</strong><br>
+                            <small>{{v.createdAt | date:'shortTime'}}</small>
+                         </div>
+                      </td>
+                      <td><span class="user-pill">{{v.nombreVendedor || 'Vendedor'}}</span></td>
+                      <td class="text-right">
+                         <strong>{{v.total | currency:'USD':'symbol':'1.0-0'}}</strong>
+                      </td>
+                   </tr>
+                </tbody>
+             </table>
+             <div *ngIf="data()?.detalleVentas?.length === 0" class="empty-state">No se encontraron ventas registradas en este periodo.</div>
+          </div>
+       </mat-card-content>
+    </mat-card>
 
     <!-- FULL DETAILED EXPENSES TABLE -->
     <div class="bottom-grid" *ngIf="data() && data()?.detalleGastos">
@@ -359,9 +455,15 @@ export const MY_FORMATS = {
     .btn-filter { background: #C2185B; color: white; border-radius: 12px; height: 50px; padding: 0 24px; }
     .kpi-container {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+    @media (max-width: 1100px) {
+      .kpi-container { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .kpi-container { grid-template-columns: 1fr; }
     }
     .kpi-card-luxury {
       padding: 24px;
@@ -377,19 +479,42 @@ export const MY_FORMATS = {
     .profit-card { background: linear-gradient(135deg, #2E7D32, #4CAF50); }
     .cashflow-card { background: linear-gradient(135deg, #0288D1, #03A9F4); }
     .kpi-icon { font-size: 32px; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 15px; }
-    .kpi-label { font-size: 11px; font-weight: 700; opacity: 0.9; letter-spacing: 1px; }
-    .kpi-value { font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+    .kpi-label { font-size: 14px; font-weight: 700; opacity: 0.9; letter-spacing: 1px; }
+    .kpi-value { font-size: 36px; font-weight: 800; margin: 0; letter-spacing: -1px; }
     .kpi-value.negative { color: #ffdada; }
 
+    .charts-grid-triple {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 900px) {
+      .charts-grid-triple { grid-template-columns: 1fr; }
+    }
+    .balance-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 25px;
+    }
+    .balance-card {
+      width: 100%;
+      max-width: 600px;
+    }
     .charts-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 25px;
-      margin-bottom: 30px;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
     }
-    .chart-card { border-radius: 24px; background: #fff; border: 1px solid #f0f0f0; box-shadow: 0 5px 15px rgba(0,0,0,0.02); min-height: 250px; }
-    .chart-title-group { display: flex; align-items: center; gap: 10px; }
-    .chart-emoji { font-size: 20px; }
+    .chart-card { min-height: 300px; display: flex; flex-direction: column; }
+    .chart-content { flex: 1; position: relative; padding: 10px !important; max-height: 250px; }
+    .full-width-chart { grid-column: 1 / -1; min-height: 350px; }
+    canvas { width: 100% !important; height: 100% !important; max-height: 240px; }
+    
+    .chart-title-group { display: flex; align-items: center; gap: 12px; }
+    .chart-emoji { font-size: 26px; }
+    ::ng-deep mat-card-title { font-size: 22px !important; font-weight: 800 !important; }
     
     .mini-table-container { padding: 10px 15px; }
     .empty-state-mini { padding: 20px; text-align: center; color: #ccc; font-size: 12px; }
@@ -401,10 +526,31 @@ export const MY_FORMATS = {
     }
     .luxury-table-card { border-radius: 24px; border: 1px solid #f0f0f0; }
     .table-container { padding: 0 15px 15px; overflow-x: auto; }
+    .cat-badge-mini {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-left: 5px;
+    }
+    .prod-info-mini {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+    .total-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .subtle-text { color: #999; font-size: 12px; }
     .premium-table { width: 100%; border-collapse: collapse; }
-    .premium-table th { text-align: left; padding: 15px 10px; border-bottom: 2px solid #f8f9fa; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-    .premium-table td { padding: 14px 10px; border-bottom: 1px solid #fcfcfc; font-weight: 600; color: #333; font-size: 13px; }
-    .premium-table.mini td { padding: 10px; font-size: 12px; }
+    .premium-table th { text-align: left; padding: 18px 12px; border-bottom: 2px solid #f8f9fa; color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+    .premium-table td { padding: 16px 12px; border-bottom: 1px solid #fcfcfc; font-weight: 600; color: #333; font-size: 16px; }
+    .premium-table.mini td { padding: 12px; font-size: 15px; }
     
     .text-right { text-align: right; }
     .monto-negativo { color: #d32f2f; }
@@ -430,8 +576,8 @@ export const MY_FORMATS = {
     tr:nth-child(2) .rank-badge { background: #C0C0C0; color: #383d41; }
     tr:nth-child(3) .rank-badge { background: #CD7F32; color: #721c24; }
 
-    .progress-bar-small { width: 80px; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; margin-left: auto; }
-    .progress-fill { height: 100%; background: #E91E63; border-radius: 3px; }
+    .progress-bar-small { width: 100%; min-width: 80px; height: 8px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin-left: auto; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #E91E63, #FF80AB); border-radius: 10px; }
     .progress-fill.expense { background: #FF5252; }
 
     .total-row td { background: #fffafb; font-weight: 800; color: #C2185B; border-top: 2px solid #C2185B; }
@@ -441,13 +587,13 @@ export const MY_FORMATS = {
     .user-pill {
       background: #f3e5f5;
       color: #7b1fa2;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 8px;
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 700;
       white-space: nowrap;
     }
-    .date-col { color: #888; font-size: 12px; }
+    .date-col { color: #888; font-size: 14px; }
     .desc-col { max-width: 300px; white-space: normal; line-height: 1.4; color: #555; }
 
     .expense-group { margin-bottom: 8px; border-bottom: 1px solid #f5f5f5; padding-bottom: 8px; }
@@ -525,9 +671,38 @@ export const MY_FORMATS = {
     }
   `]
 })
-export class Reportes implements OnInit {
+export class Reportes implements OnInit, OnDestroy {
   private reporteService = inject(ReporteService);
   private cdr = inject(ChangeDetectorRef);
+  private zone = inject(NgZone);
+
+  @ViewChild('catChart') catChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('profitChart') profitChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('expChart') expChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('compChart') compChartRef!: ElementRef<HTMLCanvasElement>;
+
+  private charts: Chart[] = [];
+
+  public getCategoryColor(name: string): string {
+    const n = name.toLowerCase();
+    if (n.includes('niña')) return '#ec407a';
+    if (n.includes('mujer')) return '#7b1fa2';
+    if (n.includes('niño')) return '#03a9f4';
+    if (n.includes('hombre')) return '#0d47a1';
+    // Colores por defecto para otras categorías
+    const others = ['#ff9800', '#ffeb3b', '#4caf50', '#009688', '#673ab7'];
+    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return others[hash % others.length];
+  }
+
+  ngOnDestroy() {
+    this.destroyCharts();
+  }
+
+  private destroyCharts() {
+    this.charts.forEach(c => c.destroy());
+    this.charts = [];
+  }
   
   data = signal<DashboardResponse | null>(null);
   loading = false;
@@ -542,19 +717,23 @@ export class Reportes implements OnInit {
     this.cargarReporte();
   }
 
+  formatDate(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
   cargarReporte() {
     const { start, end } = this.range.value;
     if (!start || !end) return;
 
     this.loading = true;
-    const inicio = start.toISOString().split('T')[0];
-    const fin = end.toISOString().split('T')[0];
+    const inicio = this.formatDate(start);
+    const fin = this.formatDate(end);
 
     this.reporteService.obtenerPorRango(inicio, fin).subscribe({
       next: (res) => {
         this.data.set(res);
         this.loading = false;
-        this.cdr.detectChanges();
+        setTimeout(() => this.initCharts(), 100);
       },
       error: () => this.loading = false
     });
@@ -606,4 +785,105 @@ export class Reportes implements OnInit {
       return { categoria, total, subItems };
     }).sort((a, b) => b.total - a.total);
   });
+
+  private initCharts() {
+    this.zone.runOutsideAngular(() => {
+      this.destroyCharts();
+      const d = this.data();
+      if (!d) return;
+
+      // Chart 1: Ventas por Categoría
+      if (this.catChartRef) {
+        const ctx = this.catChartRef.nativeElement.getContext('2d');
+        if (ctx) {
+          const labels = Object.keys(d.ventasPorCategoria);
+          this.charts.push(new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: Object.values(d.ventasPorCategoria),
+                backgroundColor: labels.map(l => this.getCategoryColor(l))
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+          }));
+        }
+      }
+
+      // Chart 2: Ganancias por Categoría
+      if (this.profitChartRef) {
+        const ctx = this.profitChartRef.nativeElement.getContext('2d');
+        if (ctx) {
+          const labels = Object.keys(d.gananciasPorCategoria);
+          this.charts.push(new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: Object.values(d.gananciasPorCategoria),
+                backgroundColor: labels.map(l => this.getCategoryColor(l))
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+          }));
+        }
+      }
+
+      // Chart 3: Gastos por Categoría
+      if (this.expChartRef) {
+        const ctx = this.expChartRef.nativeElement.getContext('2d');
+        if (ctx) {
+          this.charts.push(new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: Object.keys(d.gastosPorCategoria),
+              datasets: [{
+                data: Object.values(d.gastosPorCategoria),
+                // Paleta variada para distinguir categorías de gasto (Nómina, Servicios, etc.)
+                backgroundColor: ['#f44336', '#ff9800', '#ffeb3b', '#795548', '#607d8b', '#9e9e9e']
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+          }));
+        }
+      }
+
+      // Chart 4: Balance Ingresos vs Egresos
+      if (this.compChartRef) {
+        const ctx = this.compChartRef.nativeElement.getContext('2d');
+        if (ctx) {
+          this.charts.push(new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['Ingresos', 'Egresos'],
+              datasets: [{
+                label: 'Pesos ($)',
+                data: [d.totalVentas, d.totalGastos + d.totalSueldos],
+                backgroundColor: ['#4CAF50', '#F44336'],
+                borderRadius: 20, // Más redondeado
+                barThickness: 50
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: { 
+                y: { 
+                   beginAtZero: true, 
+                   grid: { display: true, color: '#f5f5f5' },
+                   border: { display: false }
+                }, 
+                x: { 
+                   grid: { display: false },
+                   border: { display: false }
+                } 
+              },
+              plugins: { legend: { display: false } }
+            }
+          }));
+        }
+      }
+    });
+  }
 }

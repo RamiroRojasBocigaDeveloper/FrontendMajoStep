@@ -498,6 +498,8 @@ export class VentaHistorialDialog implements OnInit {
     .lock-card p { color: #666; margin-bottom: 5px; }
     .lock-actions { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
     .quick-open-btn { padding: 25px !important; font-weight: 800; border-radius: 12px; font-size: 16px; letter-spacing: 1px; }
+
+    .lock-card {
       max-width: 450px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.1);
       border-top: 8px solid var(--primary-pink);
