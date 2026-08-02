@@ -190,15 +190,23 @@ export class Productos implements OnInit {
         if (producto?.id) {
           this.productoService.actualizar(producto.id, result).subscribe({
             next: () => {
-              this.snackBar.open('Producto actualizado', 'OK');
+              this.snackBar.open('✅ Producto actualizado correctamente', 'OK', { duration: 3000 });
               this.cargarProductos();
+            },
+            error: (err) => {
+              const msg = err.error?.message || err.error || 'Error al actualizar el producto';
+              this.snackBar.open('❌ ' + msg, 'Cerrar', { duration: 6000 });
             }
           });
         } else {
           this.productoService.crear(result).subscribe({
             next: () => {
-              this.snackBar.open('Producto creado exitosamente', 'OK');
+              this.snackBar.open('✅ Producto creado exitosamente', 'OK', { duration: 3000 });
               this.cargarProductos();
+            },
+            error: (err) => {
+              const msg = err.error?.message || err.error || 'Error al crear el producto';
+              this.snackBar.open('❌ ' + msg, 'Cerrar', { duration: 6000 });
             }
           });
         }
@@ -210,8 +218,12 @@ export class Productos implements OnInit {
     if (confirm(`¿Estás seguro de eliminar "${p.nombre}"?`)) {
       this.productoService.eliminar(p.id!).subscribe({
         next: () => {
-          this.snackBar.open('Producto eliminado', 'OK');
+          this.snackBar.open('✅ Producto eliminado', 'OK', { duration: 3000 });
           this.cargarProductos();
+        },
+        error: (err) => {
+          const msg = err.error?.message || err.error || 'No se puede eliminar este producto';
+          this.snackBar.open('❌ ' + msg, 'Cerrar', { duration: 7000 });
         }
       });
     }

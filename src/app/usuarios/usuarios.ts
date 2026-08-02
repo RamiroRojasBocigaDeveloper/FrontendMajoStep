@@ -267,6 +267,10 @@ export class Usuarios implements OnInit {
             }
           });
           this.cargarUsuarios();
+        },
+        error: (err) => {
+          const msg = err.error?.message || err.error || 'No se pudo cambiar el estado';
+          this.snackBar.open('❌ ' + msg, 'Cerrar', { duration: 5000 });
         }
       });
     }

@@ -1,4 +1,6 @@
 import { Component, inject, OnInit, signal, ChangeDetectorRef, computed, AfterViewInit, ElementRef, ViewChild, NgZone, OnDestroy } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter, Subscription } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 Chart.register(...registerables);
 import { CommonModule } from '@angular/common';
@@ -675,6 +677,8 @@ export class Reportes implements OnInit, OnDestroy {
   private reporteService = inject(ReporteService);
   private cdr = inject(ChangeDetectorRef);
   private zone = inject(NgZone);
+  private router = inject(Router);
+  private routerSub?: Subscription;
 
   @ViewChild('catChart') catChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('profitChart') profitChartRef!: ElementRef<HTMLCanvasElement>;
@@ -697,6 +701,7 @@ export class Reportes implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.destroyCharts();
+    this.routerSub?.unsubscribe();
   }
 
   private destroyCharts() {
@@ -714,11 +719,22 @@ export class Reportes implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
+    // Recargar el reporte cada vez que el usuario navega a esta pantalla
+    this.routerSub = this.router.events.pipe(
+      filter(e => e instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.today = new Date();
+      this.range.patchValue({ end: new Date() });
+      this.cargarReporte();
+    });
     this.cargarReporte();
   }
 
   formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   cargarReporte() {
@@ -735,7 +751,16 @@ export class Reportes implements OnInit, OnDestroy {
         this.loading = false;
         setTimeout(() => this.initCharts(), 100);
       },
-      error: () => this.loading = false
+      error: (err) => {
+        this.loading = false;
+        const status = err.status;
+        let msg = 'Error al cargar el reporte';
+        if (status === 403) msg = 'No tienes permisos para ver los reportes (se requiere rol Administrador)';
+        else if (status === 500) msg = 'Error interno del servidor al generar el reporte. Revisa la consola del backend.';
+        else if (status === 0) msg = 'No se pudo conectar con el servidor. ¿Está el backend encendido?';
+        console.error('Error en reporte:', err);
+        alert('⚠️ ' + msg);
+      }
     });
   }
 

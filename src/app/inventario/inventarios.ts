@@ -440,6 +440,10 @@ export class Inventarios implements OnInit {
                 }
               });
               this.cargarProductos();
+            },
+            error: (err) => {
+              const msg = err.error?.message || err.error || 'No se pudo actualizar el producto';
+              this.snackBar.open('❌ ' + msg, 'Cerrar', { duration: 6000 });
             }
           });
         } else {
@@ -454,6 +458,10 @@ export class Inventarios implements OnInit {
                 }
               });
               this.cargarProductos();
+            },
+            error: (err) => {
+              const msg = err.error?.message || err.error || 'No se pudo crear el producto';
+              this.snackBar.open('❌ ' + msg, 'Cerrar', { duration: 6000 });
             }
           });
         }
