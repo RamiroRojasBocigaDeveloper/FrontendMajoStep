@@ -8,8 +8,10 @@ export const authGuard: CanActivateFn = (route, state) => {
   const user = authService.getCurrentUser();
 
   if (authService.getToken()) {
-    const expectedRoles = route.data?.['expectedRoles'] as string[];
-    
+    // Cuando canActivate esta en la ruta padre, la data de roles vive en la ruta hija
+    const expectedRoles = (route.data?.['expectedRoles'] as string[])
+      ?? (route.firstChild?.data?.['expectedRoles'] as string[]);
+
     if (!expectedRoles || expectedRoles.length === 0) {
       return true;
     }
