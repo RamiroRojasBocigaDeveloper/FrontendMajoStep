@@ -16,6 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DATE_FORMATS, MAT_DATE_LOCALE, NativeDateAdapter, DateAdapter } from '@angular/material/core';
 import { ReporteService, DashboardResponse } from './reporte';
+import { ToastService } from '../shared/toast.service';
 
 /** Custom DateAdapter to force DD/MM/YYYY format */
 export class CustomDateAdapter extends NativeDateAdapter {
@@ -678,6 +679,7 @@ export class Reportes implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private zone = inject(NgZone);
   private router = inject(Router);
+  private toast = inject(ToastService);
   private routerSub?: Subscription;
 
   @ViewChild('catChart') catChartRef!: ElementRef<HTMLCanvasElement>;
@@ -759,7 +761,7 @@ export class Reportes implements OnInit, OnDestroy {
         else if (status === 500) msg = 'Error interno del servidor al generar el reporte. Revisa la consola del backend.';
         else if (status === 0) msg = 'No se pudo conectar con el servidor. ¿Está el backend encendido?';
         console.error('Error en reporte:', err);
-        alert('⚠️ ' + msg);
+        this.toast.error(msg, 'No se pudo cargar el reporte');
       }
     });
   }

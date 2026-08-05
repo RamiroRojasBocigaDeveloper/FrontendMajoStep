@@ -6,7 +6,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../auth/auth';
@@ -23,7 +22,6 @@ import { SuccessDialog } from '../shared/success-dialog';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatSnackBarModule,
     MatIconModule,
     MatDialogModule
   ],
@@ -34,7 +32,6 @@ export class Login {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
   private dialog = inject(MatDialog);
 
@@ -81,15 +78,6 @@ export class Login {
           if (err.status === 500) message = 'Error interno del servidor. Inténtalo más tarde.';
           
           this.errorMessage.set(message);
-          
-          this.dialog.open(SuccessDialog, {
-            width: '420px',
-            data: { 
-              icon: '❌',
-              title: 'Acceso Denegado', 
-              message: message 
-            }
-          });
           
           this.cdr.detectChanges(); // Asegurar que el Signal actualice la vista
         }

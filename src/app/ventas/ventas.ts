@@ -10,7 +10,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -25,6 +24,7 @@ import { AuthService } from '../auth/auth';
 import { SesionTrabajoService, SesionTrabajo } from '../sesiones-trabajo/sesion-trabajo';
 import { UsuarioService, Usuario } from '../usuarios/usuario';
 import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
 import { ResumenCierreDialog } from '../sesiones-trabajo/sesiones-trabajo';
 
@@ -567,7 +567,7 @@ export class Ventas implements OnInit {
   private sesionService = inject(SesionTrabajoService);
   private usuarioService = inject(UsuarioService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
   private dialog = inject(MatDialog);
 
   metodosPago: MetodoPago[] = [];
@@ -647,7 +647,7 @@ export class Ventas implements OnInit {
   agregarAlCarrito(producto: Producto) {
     // BLOQUEO: No permitir agregar productos sin stock
     if (producto.stockActual <= 0) {
-      this.snackBar.open(`🚫 "${producto.nombre}" no tiene stock disponible.`, 'Entendido', { duration: 4000 });
+      this.toast.warning(`"${producto.nombre}" no tiene stock disponible.`, 'Sin stock');
       return;
     }
 
@@ -658,7 +658,7 @@ export class Ventas implements OnInit {
     if (index >= 0) {
       // BLOQUEO: No superar el stock disponible
       if (actual[index].cantidadVenta >= producto.stockActual) {
-        this.snackBar.open(`⚠️ No puedes agregar más de ${producto.stockActual} unidades de "${producto.nombre}".`, 'OK', { duration: 3500 });
+        this.toast.warning(`No puedes agregar más de ${producto.stockActual} unidades de "${producto.nombre}".`, 'Límite de stock');
         return;
       }
       actual[index].cantidadVenta += 1;
@@ -669,9 +669,9 @@ export class Ventas implements OnInit {
     }
     
     if (nuevaCant >= producto.stockActual) {
-      this.snackBar.open(`⚠️ Último en stock: ${producto.nombre} (${producto.stockActual} und.)`, 'Aceptar', { duration: 4000 });
+      this.toast.warning(`Último en stock: ${producto.nombre} (${producto.stockActual} und.)`, 'Última unidad');
     } else {
-      this.snackBar.open(`✅ Agregado: ${producto.nombre}`, 'OK', { duration: 2000 });
+      this.toast.success(`Agregado: ${producto.nombre}`, 'Añadido al carrito', 2000);
     }
   }
 
@@ -683,7 +683,7 @@ export class Ventas implements OnInit {
       
       // BLOQUEO: No permitir superar el stock disponible
       if (cambio > 0 && actual[index].cantidadVenta >= actual[index].stockActual) {
-        this.snackBar.open(`🚫 Stock máximo alcanzado para "${actual[index].nombre}" (${actual[index].stockActual} und.).`, 'OK', { duration: 3000 });
+        this.toast.warning(`Stock máximo alcanzado para "${actual[index].nombre}" (${actual[index].stockActual} und.).`, 'Límite de stock');
         return;
       }
 
@@ -692,7 +692,7 @@ export class Ventas implements OnInit {
         this.carrito.set([...actual]);
         
         if (nuevaCant === actual[index].stockActual && cambio > 0) {
-          this.snackBar.open(`⚠️ "${actual[index].nombre}" llegó al límite del stock (${actual[index].stockActual} und.).`, 'OK', { duration: 3000 });
+          this.toast.warning(`"${actual[index].nombre}" llegó al límite del stock (${actual[index].stockActual} und.).`, 'Última unidad');
         }
       } else {
         // Si la cantidad llega a 0, remover del carrito
@@ -714,13 +714,13 @@ export class Ventas implements OnInit {
     
     // Si no es admin y no hay sesión, bloquear
     if (!this.isAdmin() && !sesion) {
-      this.snackBar.open('Error: Caja cerrada.', 'Cerrar');
+      this.toast.error('Caja cerrada. Debes abrir una sesión de trabajo para vender.', 'Caja cerrada');
       return;
     }
 
     // Si es admin, no tiene sesión y no seleccionó vendedor, bloquear
     if (this.isAdmin() && !sesion && !this.vendedorSeleccionado.value) {
-      this.snackBar.open('Debes seleccionar un vendedor o abrir tu propia caja.', 'Cerrar');
+      this.toast.warning('Debes seleccionar un vendedor o abrir tu propia caja.', 'Acción requerida');
       return;
     }
 
@@ -786,7 +786,7 @@ export class Ventas implements OnInit {
       },
       error: (err: any) => {
         this.loading = false;
-        this.snackBar.open('Error al procesar la venta: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
+        this.toast.error('No se pudo procesar la venta: ' + (err.error?.message || 'Error del servidor'), 'Venta no registrada');
       }
     });
   }
@@ -822,7 +822,7 @@ export class Ventas implements OnInit {
     }));
 
     this.carrito.set(items);
-    this.snackBar.open(`Editando factura ${venta.numeroFactura}`, 'OK', { duration: 3000 });
+    this.toast.info(`Editando factura ${venta.numeroFactura}`, 'Modo edición');
   }
 
   cancelarEdicion() {
@@ -843,11 +843,11 @@ export class Ventas implements OnInit {
       next: (sesion) => {
         this.sesionActiva.set(sesion);
         this.loading = false;
-        this.snackBar.open('¡Caja abierta con éxito! Ya puedes vender.', 'OK', { duration: 3000 });
+        this.toast.success('Ya puedes vender.', '¡Caja abierta con éxito!');
       },
       error: (err) => {
         this.loading = false;
-        this.snackBar.open('Error al abrir caja: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
+        this.toast.error('No se pudo abrir la caja: ' + (err.error?.message || 'Error del servidor'), 'Error');
       }
     });
   }
@@ -873,11 +873,11 @@ export class Ventas implements OnInit {
               next: () => {
                 this.sesionActiva.set(null);
                 this.loading = false;
-                this.snackBar.open('Caja cerrada con éxito.', 'OK', { duration: 3000 });
+                this.toast.success('Caja cerrada con éxito.', '¡Caja cerrada!');
               },
               error: (err) => {
                 this.loading = false;
-                this.snackBar.open('Error al cerrar caja: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
+                this.toast.error('No se pudo cerrar la caja: ' + (err.error?.message || 'Error del servidor'), 'Error');
               }
             });
           }
@@ -885,7 +885,7 @@ export class Ventas implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.snackBar.open('Error al obtener resumen: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
+        this.toast.error('No se pudo obtener el resumen: ' + (err.error?.message || 'Error del servidor'), 'Error');
       }
     });
   }

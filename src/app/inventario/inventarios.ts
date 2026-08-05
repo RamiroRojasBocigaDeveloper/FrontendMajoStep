@@ -5,7 +5,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,7 +17,7 @@ import { MovimientoInventarioService } from './inventario';
 import { InventarioDialog } from './inventario-dialog/inventario-dialog';
 import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
-import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 import { AuthService } from '../auth/auth';
 
 @Component({
@@ -288,7 +287,7 @@ export class Inventarios implements OnInit {
   private inventarioService = inject(MovimientoInventarioService);
   private categoriaService = inject(CategoriaService);
   private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
   private authService = inject(AuthService);
 
   productos = signal<Producto[]>([]);
@@ -376,7 +375,7 @@ export class Inventarios implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.snackBar.open('Error al cargar el inventario', 'Cerrar');
+        this.toast.error('No se pudo cargar el inventario.', 'Error');
         this.loading = false;
       }
     });
@@ -402,18 +401,11 @@ export class Inventarios implements OnInit {
       if (result) {
         this.inventarioService.registrarMovimiento(result).subscribe({
           next: () => {
-            this.dialog.open(SuccessDialog, {
-              width: '420px',
-              data: { 
-                icon: '📦',
-                title: 'Movimiento Registrado', 
-                message: 'El stock se ha actualizado correctamente.' 
-              }
-            });
+            this.toast.success('El stock se ha actualizado correctamente.', 'Movimiento registrado');
             this.cargarProductos();
           },
           error: (err) => {
-            this.snackBar.open('Error: ' + (err.error?.message || 'No se pudo registrar'), 'Cerrar');
+            this.toast.error(err.error?.message || 'No se pudo registrar el movimiento', 'Error');
           }
         });
       }
@@ -431,37 +423,23 @@ export class Inventarios implements OnInit {
         if (producto?.id) {
           this.productoService.actualizar(producto.id, result).subscribe({
             next: () => {
-              this.dialog.open(SuccessDialog, {
-                width: '420px',
-                data: { 
-                  icon: '📝',
-                  title: 'Producto Actualizado', 
-                  message: `Los cambios en ${result.nombre} se han guardado.` 
-                }
-              });
+              this.toast.success(`Los cambios en ${result.nombre} se han guardado.`, 'Producto actualizado');
               this.cargarProductos();
             },
             error: (err) => {
               const msg = err.error?.message || err.error || 'No se pudo actualizar el producto';
-              this.snackBar.open('❌ ' + msg, 'Cerrar', { duration: 6000 });
+              this.toast.error(msg, 'Error');
             }
           });
         } else {
           this.productoService.crear(result).subscribe({
             next: (nuevo) => {
-              this.dialog.open(SuccessDialog, {
-                width: '420px',
-                data: { 
-                  icon: '🆕',
-                  title: 'Producto Creado', 
-                  message: `El producto ${nuevo.nombre} ya está en el inventario.` 
-                }
-              });
+              this.toast.success(`El producto ${nuevo.nombre} ya está en el inventario.`, 'Producto creado');
               this.cargarProductos();
             },
             error: (err) => {
               const msg = err.error?.message || err.error || 'No se pudo crear el producto';
-              this.snackBar.open('❌ ' + msg, 'Cerrar', { duration: 6000 });
+              this.toast.error(msg, 'Error');
             }
           });
         }

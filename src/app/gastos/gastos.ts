@@ -6,12 +6,12 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { GastoService, Gasto } from './gasto';
 import { GastoDialog } from './gasto-dialog/gasto-dialog';
 import { AuthService } from '../auth/auth';
 import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
 import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 
 
 @Component({
@@ -171,7 +171,7 @@ export class Gastos implements OnInit {
   private authService = inject(AuthService);
   private sesionService = inject(SesionTrabajoService);
   private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private snackBar = inject(ToastService);
   private router = inject(Router);
 
   gastos = signal<Gasto[]>([]);
@@ -197,28 +197,39 @@ export class Gastos implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.snackBar.open('Error al cargar la lista de gastos', 'Cerrar');
+        this.snackBar.error('No se pudo cargar la lista de gastos.', 'Error');
         this.loading = false;
       }
     });
   }
 
   eliminar(id: number) {
-    if (confirm('¿Estás seguro de eliminar este gasto?')) {
-      this.gastoService.eliminar(id).subscribe({
-        next: () => {
-          this.dialog.open(SuccessDialog, {
-            width: '420px',
-            data: { 
-              icon: '🗑️',
-              title: 'Gasto Eliminado', 
-              message: 'El registro de gasto se ha borrado correctamente.' 
-            }
-          });
-          this.cargarGastos();
-        }
-      });
-    }
+    const dialogRef = this.dialog.open(SuccessDialog, {
+      width: '420px',
+      disableClose: true,
+      data: {
+        icon: '🗑️',
+        title: 'Eliminar Gasto',
+        message: '¿Estás seguro de eliminar este gasto? Esta acción no se puede deshacer.',
+        btnText: 'Eliminar',
+        btnIcon: 'delete',
+        showCancel: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirm => {
+      if (confirm) {
+        this.gastoService.eliminar(id).subscribe({
+          next: () => {
+            this.snackBar.success('El registro de gasto se ha borrado correctamente.', 'Gasto eliminado');
+            this.cargarGastos();
+          },
+          error: (err) => {
+            this.snackBar.error(err.error?.message || 'No se pudo eliminar el gasto', 'Error');
+          }
+        });
+      }
+    });
   }
 
   abrirDialogoGasto() {
@@ -270,18 +281,11 @@ export class Gastos implements OnInit {
       if (result) {
         this.gastoService.crear(result).subscribe({
           next: () => {
-            this.dialog.open(SuccessDialog, {
-              width: '420px',
-              data: { 
-                icon: '💸',
-                title: 'Gasto Registrado', 
-                message: 'El gasto se ha guardado correctamente.' 
-              }
-            });
+            this.snackBar.success('El gasto se ha guardado correctamente.', 'Gasto registrado');
             this.cargarGastos();
           },
           error: (err) => {
-            this.snackBar.open('Error al registrar gasto: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
+            this.snackBar.error('No se pudo registrar el gasto: ' + (err.error?.message || 'Error del servidor'), 'Error');
           }
         });
       }

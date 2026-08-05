@@ -3,14 +3,13 @@ import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { SesionTrabajoService, SesionTrabajo, ResumenCierre } from './sesion-trabajo';
 import { AuthService } from '../auth/auth';
 import { finalize } from 'rxjs';
 import { Router } from '@angular/router';
-import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-welcome-dialog',
@@ -243,7 +242,7 @@ export class ResumenCierreDialog {
 export class SesionesTrabajo implements OnInit {
   private sesionService = inject(SesionTrabajoService);
   private authService = inject(AuthService);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
   private dialog = inject(MatDialog);
   private router = inject(Router);
 
@@ -266,7 +265,7 @@ export class SesionesTrabajo implements OnInit {
   cargarDatos() {
     const id = this.userId;
     if (!id) {
-      this.snackBar.open('Usuario no autenticado (falta ID)', 'Cerrar');
+      this.toast.error('No se pudo identificar el usuario. Inicia sesión nuevamente.', 'Sesión no autenticada');
       this.loading.set(false);
       return;
     }
@@ -296,7 +295,7 @@ export class SesionesTrabajo implements OnInit {
       },
       error: (err) => {
         console.error('Error obtenerHistorial:', err);
-        this.snackBar.open('Error cargando historial: ' + err.status + ' ' + (err.error?.message || err.message), 'Cerrar', {duration: 8000});
+        this.toast.error('No se pudo cargar el historial de sesiones.', 'Error');
         this.loading.set(false);
       }
     });
@@ -326,7 +325,7 @@ export class SesionesTrabajo implements OnInit {
       },
       error: (err) => {
         const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
-        this.snackBar.open('Error al abrir caja: ' + errorMsg, 'Cerrar', { duration: 5000 });
+        this.toast.error('No se pudo abrir la caja: ' + errorMsg, 'Error');
         this.loading.set(false);
       }
     });
@@ -359,7 +358,7 @@ export class SesionesTrabajo implements OnInit {
       error: (err) => {
         this.loading.set(false);
         const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
-        this.snackBar.open('Error al obtener resumen: ' + errorMsg, 'Cerrar', { duration: 5000 });
+        this.toast.error('No se pudo obtener el resumen: ' + errorMsg, 'Error');
       }
     });
   }
@@ -368,20 +367,14 @@ export class SesionesTrabajo implements OnInit {
     this.loading.set(true);
     this.sesionService.cerrarSesion(sesionId).subscribe({
       next: () => {
-        this.dialog.open(SuccessDialog, {
-          width: '400px',
-          data: { 
-            title: '¡Caja Cerrada!', 
-            message: 'La sesión de trabajo ha finalizado y el cierre se ha registrado con éxito.' 
-          }
-        });
+        this.toast.success('La sesión de trabajo ha finalizado y el cierre se ha registrado con éxito.', '¡Caja cerrada!');
         
         this.sesionActiva.set(null);
         this.cargarDatos();
       },
       error: (err) => {
         const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
-        this.snackBar.open('Error al cerrar caja: ' + errorMsg, 'Cerrar', { duration: 5000 });
+        this.toast.error('No se pudo cerrar la caja: ' + errorMsg, 'Error');
         this.loading.set(false);
       }
     });

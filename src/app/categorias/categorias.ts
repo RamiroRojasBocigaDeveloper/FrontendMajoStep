@@ -1,7 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CategoriaService, Categoria } from './categoria';
 import { CategoriaDialog } from './categoria-dialog/categoria-dialog';
 import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-categorias',
@@ -20,7 +20,6 @@ import { SuccessDialog } from '../shared/success-dialog';
     MatButtonModule,
     MatIconModule,
     MatCardModule,
-    MatSnackBarModule,
     MatDialogModule,
     MatProgressSpinnerModule
   ],
@@ -34,7 +33,7 @@ export class Categorias implements OnInit {
 
   private categoriaService = inject(CategoriaService);
   private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
 
   ngOnInit(): void {
     this.cargarCategorias();
@@ -49,7 +48,7 @@ export class Categorias implements OnInit {
       },
       error: () => {
         this.loading = false;
-        this.snackBar.open('Error al cargar categorías', 'Cerrar');
+        this.toast.error('No se pudieron cargar las categorías.', 'Error');
       }
     });
   }
@@ -62,37 +61,38 @@ export class Categorias implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.dialog.open(SuccessDialog, {
-          width: '420px',
-          data: { 
-            icon: '📂',
-            title: result.action === 'created' ? 'Categoría Creada' : 'Categoría Actualizada', 
-            message: `La categoría "${result.nombre}" se ha guardado correctamente.` 
-          }
-        });
+        this.toast.success(`La categoría "${result.nombre}" se ha guardado correctamente.`, result.action === 'created' ? 'Categoría creada' : 'Categoría actualizada');
         this.cargarCategorias();
       }
     });
   }
 
   eliminar(id: number) {
-    if (confirm('¿Estás seguro de eliminar esta categoría?')) {
-      this.categoriaService.eliminar(id).subscribe({
-        next: () => {
-          this.dialog.open(SuccessDialog, {
-            width: '420px',
-            data: { 
-              icon: '🗑️',
-              title: 'Categoría Eliminada', 
-              message: 'La categoría se ha borrado del sistema.' 
-            }
-          });
-          this.cargarCategorias();
-        },
-        error: (err) => {
-          this.snackBar.open('No se pudo eliminar: ' + (err.error?.message || 'Error'), 'Cerrar');
-        }
-      });
-    }
+    const dialogRef = this.dialog.open(SuccessDialog, {
+      width: '420px',
+      disableClose: true,
+      data: {
+        icon: '🗑️',
+        title: 'Eliminar Categoría',
+        message: '¿Estás seguro de eliminar esta categoría?',
+        btnText: 'Eliminar',
+        btnIcon: 'delete',
+        showCancel: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirm => {
+      if (confirm) {
+        this.categoriaService.eliminar(id).subscribe({
+          next: () => {
+            this.toast.success('La categoría se ha borrado del sistema.', 'Categoría eliminada');
+            this.cargarCategorias();
+          },
+          error: (err) => {
+            this.toast.error(err.error?.message || 'No se pudo eliminar la categoría', 'Error');
+          }
+        });
+      }
+    });
   }
 }

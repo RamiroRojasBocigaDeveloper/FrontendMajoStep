@@ -6,8 +6,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CategoriaService, Categoria } from '../categoria';
+import { ToastService } from '../../shared/toast.service';
 
 @Component({
   selector: 'app-categoria-dialog',
@@ -20,8 +20,7 @@ import { CategoriaService, Categoria } from '../categoria';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatIconModule,
-    MatSnackBarModule
+    MatIconModule
   ],
   templateUrl: './categoria-dialog.html',
   styleUrls: ['./categoria-dialog.css']
@@ -33,7 +32,7 @@ export class CategoriaDialog {
 
   private fb = inject(FormBuilder);
   private categoriaService = inject(CategoriaService);
-  private snackBar = inject(MatSnackBar);
+  private snackBar = inject(ToastService);
 
   constructor(
     public dialogRef: MatDialogRef<CategoriaDialog>,
@@ -55,7 +54,7 @@ export class CategoriaDialog {
           next: () => this.dialogRef.close({ action: 'updated', nombre: categoriaData.nombre }),
           error: () => {
             this.loading = false;
-            this.snackBar.open('Error al actualizar', 'Cerrar');
+            this.snackBar.error('No se pudo actualizar la categoría.', 'Error');
           }
         });
       } else {
@@ -63,7 +62,7 @@ export class CategoriaDialog {
           next: (res) => this.dialogRef.close({ action: 'created', nombre: res.nombre }),
           error: () => {
             this.loading = false;
-            this.snackBar.open('Error al crear', 'Cerrar');
+            this.snackBar.error('No se pudo crear la categoría.', 'Error');
           }
         });
       }

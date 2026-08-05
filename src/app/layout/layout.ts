@@ -10,9 +10,10 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { AuthService } from '../auth/auth';
 import { MatDialogModule, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ResumenCierreDialog } from '../sesiones-trabajo/sesiones-trabajo';
 import { ProductoService, Producto } from '../productos/producto';
+import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-confirm-logout-dialog',
@@ -96,8 +97,7 @@ export class ConfirmLogoutDialog {
     MatIconModule,
     MatButtonModule,
     MatBadgeModule,
-    MatDialogModule,
-    MatSnackBarModule
+    MatDialogModule
   ],
   template: `
     <mat-sidenav-container class="sidenav-container">
@@ -324,7 +324,7 @@ export class Layout implements OnInit {
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private sesionService = inject(SesionTrabajoService);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
   private productoService = inject(ProductoService);
 
   isMobile = false;
@@ -410,17 +410,17 @@ export class Layout implements OnInit {
                   resumenRef.afterClosed().subscribe(confirm => {
                     if (confirm) {
                       // Cerramos caja y salimos con feedback
-                      const snackRef = this.snackBar.open('Finalizando sesión y cerrando caja...', undefined, { duration: 0 });
+                      this.toast.info('Finalizando sesión y cerrando caja...', 'Procesando');
                       
                       this.sesionService.cerrarSesion(sesion.id).subscribe({
                         next: () => {
-                          snackRef.dismiss();
-                          this.snackBar.open('Caja cerrada con éxito. ¡Hasta pronto!', 'Cerrar', { duration: 2000 });
+                          this.toast.dismissAll();
+                          this.toast.success('Caja cerrada con éxito. ¡Hasta pronto!', '¡Hasta pronto!');
                           this.ejecutarLogout();
                         },
                         error: (err: any) => {
                           console.error('Error cerrando caja:', err);
-                          snackRef.dismiss();
+                          this.toast.dismissAll();
                           
                           let serverMessage = 'Error desconocido';
                           if (err.error && typeof err.error === 'string') {
@@ -429,7 +429,7 @@ export class Layout implements OnInit {
                             serverMessage = err.message;
                           }
 
-                          this.snackBar.open(`Error al cerrar caja: ${serverMessage}. Cerrando sesión por seguridad.`, 'Descubierto', { duration: 6000 });
+                          this.toast.error(`No se pudo cerrar la caja: ${serverMessage}. Cerrando sesión por seguridad.`, 'Error');
                           this.ejecutarLogout();
                         }
                       });
@@ -437,7 +437,7 @@ export class Layout implements OnInit {
                   });
                 },
                 error: (err) => {
-                  this.snackBar.open('Error al generar resumen.', 'Cerrar', {duration: 3000});
+                  this.toast.error('No se pudo generar el resumen de cierre.', 'Error');
                 }
               });
             } else if (result === 'SOLO_SALIR') {
@@ -446,16 +446,33 @@ export class Layout implements OnInit {
           });
         } else {
           // Si la caja ya está cerrada, pedimos una confirmación simple pero bonita
-          if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-            this.ejecutarLogout();
-          }
+          this.confirmarLogout();
         }
       },
       error: () => {
         // Si hay error (No tiene caja abierta), simplemente salimos con confirmación
-        if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-          this.ejecutarLogout();
-        }
+        this.confirmarLogout();
+      }
+    });
+  }
+
+  private confirmarLogout() {
+    const dialogRef = this.dialog.open(SuccessDialog, {
+      width: '420px',
+      disableClose: true,
+      data: {
+        icon: '👋',
+        title: 'Cerrar Sesión',
+        message: '¿Estás seguro de que deseas cerrar sesión?',
+        btnText: 'Sí, salir',
+        btnIcon: 'logout',
+        showCancel: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirm => {
+      if (confirm) {
+        this.ejecutarLogout();
       }
     });
   }

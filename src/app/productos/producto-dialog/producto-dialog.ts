@@ -9,8 +9,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CategoriaService, Categoria } from '../../categorias/categoria';
 import { Producto } from '../producto';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CloudinaryService } from '../../cloudinary.service';
+import { ToastService } from '../../shared/toast.service';
 import { MatIconModule } from '@angular/material/icon';
 
 @Component({
@@ -133,7 +133,7 @@ export class ProductoDialog implements OnInit {
   private fb = inject(FormBuilder);
   private categoriaService = inject(CategoriaService);
   private cloudinaryService = inject(CloudinaryService);
-  private snackBar = inject(MatSnackBar);
+  private snackBar = inject(ToastService);
   dialogRef = inject(MatDialogRef<ProductoDialog>);
   data = inject(MAT_DIALOG_DATA);
 
@@ -175,7 +175,7 @@ export class ProductoDialog implements OnInit {
           const url = res.secure_url || res.url;
           this.form.patchValue({ imagenUrl: url });
           this.uploading = false;
-          this.snackBar.open('¡Imagen subida a la nube correctamente!', 'Cerrar', { duration: 3000 });
+          this.snackBar.success('La imagen se subió a la nube correctamente.', 'Imagen subida');
         },
         error: (err) => {
           console.error('Error al subir imagen', err);
@@ -183,7 +183,7 @@ export class ProductoDialog implements OnInit {
           let msj = 'Hubo un error al subir la imagen. Intenta de nuevo.';
           if (err.status === 403 || err.status === 401) msj = 'No tienes permiso para subir fotos.';
           else if (err.status === 500) msj = 'Error en el servidor de Cloudinary (Verifica las credenciales).';
-          this.snackBar.open(msj, 'Cerrar', { duration: 5000 });
+          this.snackBar.error(msj, 'No se pudo subir la imagen');
         }
       });
     }
