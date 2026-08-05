@@ -43,7 +43,7 @@ export const routes: Routes = [
         path: 'sesiones-trabajo',
         loadComponent: () => import('./sesiones-trabajo/sesiones-trabajo').then(m => m.SesionesTrabajo)
       },
-      { path: '', redirectTo: 'sesiones-trabajo', pathMatch: 'full' }
+      { path: '', redirectTo: 'ventas', pathMatch: 'full' }
     ]
   }
 ];

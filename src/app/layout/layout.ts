@@ -113,7 +113,7 @@ export class ConfirmLogoutDialog {
           </a>
           <a mat-list-item routerLink="/sesiones-trabajo" routerLinkActive="active-link" *ngIf="isAdmin() || isJefe()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>point_of_sale</mat-icon>
-            <span matListItemTitle>Sesión / Caja</span>
+            <span matListItemTitle>Historial de Caja</span>
           </a>
           <a mat-list-item routerLink="/inventario" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon
