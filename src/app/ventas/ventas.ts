@@ -76,7 +76,7 @@ interface ItemCarrito extends Producto {
 
           <ng-container matColumnDef="total">
             <th mat-header-cell *matHeaderCellDef> Total </th>
-            <td mat-cell *matCellDef="let v"> {{v.total | currency}} </td>
+            <td mat-cell *matCellDef="let v"> {{v.total | currency:'COP'}} </td>
           </ng-container>
 
           <ng-container matColumnDef="acciones">
@@ -126,13 +126,20 @@ export class VentaHistorialDialog implements OnInit {
     const fin = new Date(this.fechaFin.value);
     fin.setHours(23,59,59,999);
 
-    this.ventaService.obtenerPorRango(inicio.toISOString(), fin.toISOString()).subscribe({
+    this.ventaService.obtenerPorRango(this.fechaLocal(inicio), this.fechaLocal(fin)).subscribe({
       next: (res) => {
         this.ventas.set(res);
         this.loading = false;
       },
       error: () => this.loading = false
     });
+  }
+
+  private fechaLocal(d: Date): string {
+    const yr = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    return `${yr}-${mo}-${da}`;
   }
 
   seleccionar(venta: any) {
@@ -194,7 +201,7 @@ export class VentaHistorialDialog implements OnInit {
                     <div class="product-option">
                       <span class="prod-name">{{producto.referencia}}</span>
                       <span class="prod-ref">{{producto.nombre}}</span>
-                      <span class="prod-price">{{producto.precioVenta | currency:'USD'}}</span>
+                      <span class="prod-price">{{producto.precioVenta | currency:'COP'}}</span>
                       <span class="stock-badge" [class.badge-ok]="producto.stockActual > 5" [class.badge-low]="producto.stockActual > 0 && producto.stockActual <= 5" [class.badge-empty]="producto.stockActual <= 0">
                         {{ producto.stockActual <= 0 ? 'Sin stock' : 'Stock: ' + producto.stockActual }}
                       </span>
@@ -230,7 +237,7 @@ export class VentaHistorialDialog implements OnInit {
                 <td mat-cell *matCellDef="let item"> 
                   <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 130px;">
                     <span matPrefix>$</span>
-                    <input matInput type="number" [(ngModel)]="item.precioUnitario" (ngModelChange)="calcularTotal()">
+                    <input matInput type="number" min="0" [(ngModel)]="item.precioUnitario" (ngModelChange)="calcularTotal()">
                   </mat-form-field>
                 </td>
               </ng-container>
@@ -248,7 +255,7 @@ export class VentaHistorialDialog implements OnInit {
 
               <ng-container matColumnDef="subtotal">
                 <th mat-header-cell *matHeaderCellDef> Subtotal </th>
-                <td mat-cell *matCellDef="let item"> {{ (item.precioUnitario * item.cantidadVenta) | currency:'USD'}} </td>
+                <td mat-cell *matCellDef="let item"> {{ (item.precioUnitario * item.cantidadVenta) | currency:'COP'}} </td>
               </ng-container>
 
               <ng-container matColumnDef="acciones">
@@ -278,12 +285,12 @@ export class VentaHistorialDialog implements OnInit {
           <mat-card-content>
             <div class="total-row">
               <span class="label">{{ editMode() ? 'Editando Factura' : 'Total a Pagar' }}</span>
-              <span class="value" *ngIf="!editMode()">{{ calcularTotal() | currency:'USD' }}</span>
+              <span class="value" *ngIf="!editMode()">{{ calcularTotal() | currency:'COP' }}</span>
               <span class="edit-factura" *ngIf="editMode()">{{ facturaEnEdicion() }}</span>
             </div>
             <div class="total-row" *ngIf="editMode()">
                <span class="label">Nuevo Total</span>
-               <span class="value">{{ calcularTotal() | currency:'USD' }}</span>
+               <span class="value">{{ calcularTotal() | currency:'COP' }}</span>
             </div>
             <mat-divider></mat-divider>
             <div class="items-count">
@@ -721,6 +728,12 @@ export class Ventas implements OnInit {
     // Si es admin, no tiene sesión y no seleccionó vendedor, bloquear
     if (this.isAdmin() && !sesion && !this.vendedorSeleccionado.value) {
       this.toast.warning('Debes seleccionar un vendedor o abrir tu propia caja.', 'Acción requerida');
+      return;
+    }
+
+    const precioInvalido = this.carrito().some(i => !isFinite(i.precioUnitario) || i.precioUnitario <= 0);
+    if (precioInvalido) {
+      this.toast.error('Revisa los precios del carrito: deben ser mayores a 0.', 'Precio inválido');
       return;
     }
 

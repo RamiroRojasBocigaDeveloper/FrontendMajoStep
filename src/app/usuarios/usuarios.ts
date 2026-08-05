@@ -122,7 +122,7 @@ export class ResetPasswordDialog {
  
           <ng-container matColumnDef="sueldo">
             <th mat-header-cell *matHeaderCellDef class="text-center"> Sueldo Diario </th>
-            <td mat-cell *matCellDef="let u" class="text-center"> {{u.sueldoDiario | currency:'USD':'symbol':'1.0-0'}} </td>
+            <td mat-cell *matCellDef="let u" class="text-center"> {{u.sueldoDiario | currency:'COP':'symbol':'1.0-0'}} </td>
           </ng-container>
  
           <ng-container matColumnDef="acciones">

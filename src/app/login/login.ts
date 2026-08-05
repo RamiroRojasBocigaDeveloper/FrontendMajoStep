@@ -53,11 +53,8 @@ export class Login {
       this.errorMessage.set(null);
       this.cdr.detectChanges();
 
-      console.log('Intentando iniciar sesión para:', this.loginForm.value.email);
-      
       this.authService.login(this.loginForm.value).subscribe({
         next: (response) => {
-          console.log('Inicio de sesión exitoso para:', response.email);
           this.loading = false;
           this.dialog.open(SuccessDialog, {
             width: '420px',
@@ -70,7 +67,6 @@ export class Login {
           this.router.navigate(['/']);
         },
         error: (err) => {
-          console.error('Error de autenticación observado:', err);
           this.loading = false;
           
           let message = 'Credenciales incorrectas. Por favor, verifica tu correo y contraseña.';

@@ -111,7 +111,7 @@ import { AuthService } from '../auth/auth';
 
           <ng-container matColumnDef="precio">
             <th mat-header-cell *matHeaderCellDef class="text-center"> Precio </th>
-            <td mat-cell *matCellDef="let p" class="text-center"> {{p.precioVenta | currency:'USD':'symbol':'1.0-0'}} </td>
+            <td mat-cell *matCellDef="let p" class="text-center"> {{p.precioVenta | currency:'COP':'symbol':'1.0-0'}} </td>
           </ng-container>
 
           <ng-container matColumnDef="stock">

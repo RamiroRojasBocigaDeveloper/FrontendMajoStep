@@ -67,7 +67,7 @@ import { ToastService } from '../shared/toast.service';
           <ng-container matColumnDef="monto">
             <th mat-header-cell *matHeaderCellDef> Monto </th>
             <td mat-cell *matCellDef="let g" class="monto-cell"> 
-              {{g.monto | currency:'USD'}} 
+              {{g.monto | currency:'COP'}} 
             </td>
           </ng-container>
 

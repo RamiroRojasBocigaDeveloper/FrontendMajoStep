@@ -73,7 +73,7 @@ import { ToastService } from '../shared/toast.service';
           <ng-container matColumnDef="precios">
             <th mat-header-cell *matHeaderCellDef> Precio Venta </th>
             <td mat-cell *matCellDef="let p"> 
-              <span class="price-tag">{{p.precioVenta | currency:'USD'}}</span>
+              <span class="price-tag">{{p.precioVenta | currency:'COP'}}</span>
             </td>
           </ng-container>
 

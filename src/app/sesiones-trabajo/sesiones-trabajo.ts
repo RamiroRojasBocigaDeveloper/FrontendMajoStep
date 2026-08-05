@@ -26,16 +26,16 @@ import { ToastService } from '../shared/toast.service';
       <div class="resumen-grid">
         <div class="resumen-item">
           <span class="label">Total Ventas (Bruto)</span>
-          <span class="value pos">{{ data.totalVentas | currency }}</span>
+          <span class="value pos">{{ data.totalVentas | currency:'COP' }}</span>
         </div>
         <div class="resumen-item">
           <span class="label">Total Gastos</span>
-          <span class="value neg">{{ data.totalGastos | currency }}</span>
+          <span class="value neg">{{ data.totalGastos | currency:'COP' }}</span>
         </div>
         <div class="divider"></div>
         <div class="resumen-item highlight" [ngClass]="getResultClass()">
           <span class="label">Saldo Esperado (Caja)</span>
-          <span class="value">{{ data.saldoNeto | currency }}</span>
+          <span class="value">{{ data.saldoNeto | currency:'COP' }}</span>
         </div>
       </div>
 
@@ -247,7 +247,6 @@ export class SesionesTrabajo implements OnInit {
       },
       error: (err) => {
         console.error('Error obtenerSesionActiva:', err);
-        // this.snackBar.open('Debug GET Activa: ' + err.status + ' ' + (err.error?.message || err.message), 'Cerrar', {duration: 8000});
         this.sesionActiva.set(null);
       }
     });

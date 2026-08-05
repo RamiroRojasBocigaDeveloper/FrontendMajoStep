@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ChangeDetectorRef, computed, AfterViewInit, ElementRef, ViewChild, NgZone, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, ElementRef, ViewChild, NgZone, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
@@ -106,7 +106,7 @@ export const MY_FORMATS = {
         <div class="kpi-icon">📈</div>
         <div class="kpi-info">
           <span class="kpi-label">VENTAS TOTALES</span>
-          <h2 class="kpi-value">{{data()?.totalVentas | currency:'USD':'symbol':'1.0-0'}}</h2>
+          <h2 class="kpi-value">{{data()?.totalVentas | currency:'COP':'symbol':'1.0-0'}}</h2>
         </div>
       </div>
 
@@ -114,7 +114,7 @@ export const MY_FORMATS = {
         <div class="kpi-icon">💸</div>
         <div class="kpi-info">
           <span class="kpi-label">TOTAL GASTOS</span>
-          <h2 class="kpi-value">{{(data()?.totalGastos || 0) + (data()?.totalSueldos || 0) | currency:'USD':'symbol':'1.0-0'}}</h2>
+          <h2 class="kpi-value">{{(data()?.totalGastos || 0) + (data()?.totalSueldos || 0) | currency:'COP':'symbol':'1.0-0'}}</h2>
         </div>
       </div>
 
@@ -122,7 +122,7 @@ export const MY_FORMATS = {
         <div class="kpi-icon">💰</div>
         <div class="kpi-info">
           <span class="kpi-label">GANANCIA TOTAL</span>
-          <h2 class="kpi-value">{{data()?.gananciaProductos | currency:'USD':'symbol':'1.0-0'}}</h2>
+          <h2 class="kpi-value">{{data()?.gananciaProductos | currency:'COP':'symbol':'1.0-0'}}</h2>
         </div>
       </div>
 
@@ -131,7 +131,7 @@ export const MY_FORMATS = {
         <div class="kpi-info">
           <span class="kpi-label">FLUJO DE CAJA (NETO)</span>
           <h2 class="kpi-value" [class.negative]="(data()?.gananciaNeta || 0) < 0">
-            {{data()?.gananciaNeta | currency:'USD':'symbol':'1.0-0'}}
+            {{data()?.gananciaNeta | currency:'COP':'symbol':'1.0-0'}}
           </h2>
         </div>
       </div>
@@ -235,7 +235,7 @@ export const MY_FORMATS = {
               <tbody>
                 <tr *ngFor="let item of ventasPorCategoria()">
                   <td class="category-name">{{item.nombre}}</td>
-                  <td class="text-right">{{item.monto | currency:'USD':'symbol':'1.0-0'}}</td>
+                  <td class="text-right">{{item.monto | currency:'COP':'symbol':'1.0-0'}}</td>
                 </tr>
               </tbody>
             </table>
@@ -263,7 +263,7 @@ export const MY_FORMATS = {
               <tbody>
                 <tr *ngFor="let item of gananciasPorCategoria()">
                   <td class="category-name green">{{item.nombre}}</td>
-                  <td class="text-right green">{{item.monto | currency:'USD':'symbol':'1.0-0'}}</td>
+                  <td class="text-right green">{{item.monto | currency:'COP':'symbol':'1.0-0'}}</td>
                 </tr>
               </tbody>
             </table>
@@ -291,7 +291,7 @@ export const MY_FORMATS = {
               <tbody>
                 <tr *ngFor="let item of gastosPorCategoria()">
                   <td class="category-name red">{{item.nombre}}</td>
-                  <td class="text-right red">{{item.monto | currency:'USD':'symbol':'1.0-0'}}</td>
+                  <td class="text-right red">{{item.monto | currency:'COP':'symbol':'1.0-0'}}</td>
                 </tr>
               </tbody>
             </table>
@@ -312,11 +312,11 @@ export const MY_FORMATS = {
               <div *ngFor="let group of gastosJerarquicos()" class="expense-group">
                 <div class="expense-group-header">
                   <span class="expense-cat-name">{{group.categoria}}</span>
-                  <span class="expense-cat-total">{{group.total | currency:'USD':'symbol':'1.0-0'}}</span>
+                  <span class="expense-cat-total">{{group.total | currency:'COP':'symbol':'1.0-0'}}</span>
                 </div>
                 <div *ngFor="let sub of group.subItems" class="expense-sub-row">
                   <span class="expense-sub-name">{{sub.nombre}}</span>
-                  <span class="expense-sub-monto">{{sub.monto | currency:'USD':'symbol':'1.0-0'}}</span>
+                  <span class="expense-sub-monto">{{sub.monto | currency:'COP':'symbol':'1.0-0'}}</span>
                 </div>
               </div>
               
@@ -325,7 +325,7 @@ export const MY_FORMATS = {
                   <tr class="total-row-final">
                     <td style="padding: 15px; font-weight: 800;">TOTAL GENERAL EGRESOS</td>
                     <td class="text-right" style="padding: 15px; font-weight: 800;">
-                      {{(data()?.totalGastos || 0) + (data()?.totalSueldos || 0) | currency:'USD':'symbol':'1.0-0'}}
+                      {{(data()?.totalGastos || 0) + (data()?.totalSueldos || 0) | currency:'COP':'symbol':'1.0-0'}}
                     </td>
                   </tr>
                 </tfoot>
@@ -378,7 +378,7 @@ export const MY_FORMATS = {
                       </td>
                       <td><span class="user-pill">{{v.nombreVendedor || 'Vendedor'}}</span></td>
                       <td class="text-right">
-                         <strong>{{v.total | currency:'USD':'symbol':'1.0-0'}}</strong>
+                         <strong>{{v.total | currency:'COP':'symbol':'1.0-0'}}</strong>
                       </td>
                    </tr>
                 </tbody>
@@ -412,7 +412,7 @@ export const MY_FORMATS = {
                   <td><span class="category-name">{{g.categoriaGastoNombre}}</span></td>
                   <td class="desc-col">{{g.descripcion}}</td>
                   <td><span class="user-pill">{{g.nombreUsuario || 'Admin'}}</span></td>
-                  <td class="text-right monto-negativo">{{g.monto | currency:'USD':'symbol':'1.0-0'}}</td>
+                  <td class="text-right monto-negativo">{{g.monto | currency:'COP':'symbol':'1.0-0'}}</td>
                 </tr>
               </tbody>
             </table>
@@ -676,7 +676,6 @@ export const MY_FORMATS = {
 })
 export class Reportes implements OnInit, OnDestroy {
   private reporteService = inject(ReporteService);
-  private cdr = inject(ChangeDetectorRef);
   private zone = inject(NgZone);
   private router = inject(Router);
   private toast = inject(ToastService);
