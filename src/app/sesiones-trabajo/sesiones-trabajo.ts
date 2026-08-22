@@ -3,45 +3,13 @@ import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
-import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { SesionTrabajoService, SesionTrabajo, ResumenCierre } from './sesion-trabajo';
 import { AuthService } from '../auth/auth';
 import { finalize } from 'rxjs';
 import { Router } from '@angular/router';
-import { SuccessDialog } from '../shared/success-dialog';
-
-@Component({
-  selector: 'app-welcome-dialog',
-  standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule],
-  template: `
-    <div class="welcome-wrapper">
-      <div class="welcome-icon">✨</div>
-      <h2 class="welcome-title">¡Caja Abierta!</h2>
-      <p class="welcome-message">Hoy es un gran día para vender, <br><strong>{{ data.nombre }}</strong></p>
-      
-      <div class="welcome-actions">
-        <button mat-flat-button class="start-selling-btn" color="primary" (click)="dialogRef.close()">
-          <mat-icon>shopping_cart</mat-icon> Empezar a Vender
-        </button>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .welcome-wrapper { padding: 32px; text-align: center; background: linear-gradient(135deg, #ffffff, #fff5f8); border-radius: 20px; }
-    .welcome-icon { font-size: 4rem; margin-bottom: 16px; animation: bounce 2s infinite; }
-    .welcome-title { font-size: 1.8rem; font-weight: 800; color: var(--primary-pink); margin-bottom: 12px; }
-    .welcome-message { font-size: 1.2rem; color: #444; line-height: 1.5; margin-bottom: 32px; }
-    .start-selling-btn { padding: 24px 32px; font-size: 1.1rem; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3); }
-    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-  `]
-})
-export class WelcomeDialog {
-  dialogRef = inject(MatDialogRef<WelcomeDialog>);
-  data = inject(MAT_DIALOG_DATA);
-}
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-resumen-cierre-dialog',
@@ -58,16 +26,16 @@ export class WelcomeDialog {
       <div class="resumen-grid">
         <div class="resumen-item">
           <span class="label">Total Ventas (Bruto)</span>
-          <span class="value pos">{{ data.totalVentas | currency }}</span>
+          <span class="value pos">{{ data.totalVentas | currency:'COP' }}</span>
         </div>
         <div class="resumen-item">
           <span class="label">Total Gastos</span>
-          <span class="value neg">{{ data.totalGastos | currency }}</span>
+          <span class="value neg">{{ data.totalGastos | currency:'COP' }}</span>
         </div>
         <div class="divider"></div>
         <div class="resumen-item highlight" [ngClass]="getResultClass()">
           <span class="label">Saldo Esperado (Caja)</span>
-          <span class="value">{{ data.saldoNeto | currency }}</span>
+          <span class="value">{{ data.saldoNeto | currency:'COP' }}</span>
         </div>
       </div>
 
@@ -137,7 +105,7 @@ export class ResumenCierreDialog {
       <div class="header-content">
         <div class="title-group">
           <h1>Control de Caja / Sesiones</h1>
-          <p>Gestiona la apertura y cierre de caja de tu turno actual.</p>
+          <p>Consulta el estado de la caja y el historial de tus turnos. La apertura y el cierre se gestionan desde Ventas.</p>
         </div>
       </div>
     </mat-card>
@@ -159,11 +127,6 @@ export class ResumenCierreDialog {
               <p><strong>Vendedor:</strong> <span class="vendedor-name">{{ sesionActiva()?.nombreUsuario }}</span></p>
               <p><strong>Apertura:</strong> {{ sesionActiva()?.horaInicio | date:'medium' }}</p>
               <p><strong>Estado:</strong> {{ sesionActiva()?.estado }}</p>
-              
-              <button mat-flat-button color="warn" class="action-btn" (click)="cerrarCaja()">
-                <mat-icon>lock</mat-icon>
-                Cerrar Caja
-              </button>
             </div>
 
             <ng-template #sinSesion>
@@ -171,13 +134,13 @@ export class ResumenCierreDialog {
                 <mat-icon>lock</mat-icon>
                 <span>Caja Cerrada</span>
               </div>
-              <p>Para empezar a realizar ventas, debes abrir caja (iniciar sesión de trabajo).</p>
-              
-              <button mat-flat-button color="primary" class="action-btn popup-btn" (click)="abrirCaja()">
-                <mat-icon>lock_open</mat-icon>
-                Abrir Caja
-              </button>
+              <p>No tienes un turno activo. Para vender, debes abrir tu caja desde la pantalla de Ventas.</p>
             </ng-template>
+
+            <button mat-raised-button color="primary" class="action-btn" (click)="irAVentas()">
+              <mat-icon>point_of_sale</mat-icon>
+              Ir a Ventas
+            </button>
           </div>
         </mat-card-content>
       </mat-card>
@@ -243,8 +206,7 @@ export class ResumenCierreDialog {
 export class SesionesTrabajo implements OnInit {
   private sesionService = inject(SesionTrabajoService);
   private authService = inject(AuthService);
-  private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
+  private toast = inject(ToastService);
   private router = inject(Router);
 
   sesionActiva = signal<SesionTrabajo | null>(null);
@@ -259,6 +221,10 @@ export class SesionesTrabajo implements OnInit {
     return this.authService.isAdmin();
   }
 
+  irAVentas() {
+    this.router.navigate(['/ventas']);
+  }
+
   ngOnInit() {
     this.cargarDatos();
   }
@@ -266,7 +232,7 @@ export class SesionesTrabajo implements OnInit {
   cargarDatos() {
     const id = this.userId;
     if (!id) {
-      this.snackBar.open('Usuario no autenticado (falta ID)', 'Cerrar');
+      this.toast.error('No se pudo identificar el usuario. Inicia sesión nuevamente.', 'Sesión no autenticada');
       this.loading.set(false);
       return;
     }
@@ -281,7 +247,6 @@ export class SesionesTrabajo implements OnInit {
       },
       error: (err) => {
         console.error('Error obtenerSesionActiva:', err);
-        // this.snackBar.open('Debug GET Activa: ' + err.status + ' ' + (err.error?.message || err.message), 'Cerrar', {duration: 8000});
         this.sesionActiva.set(null);
       }
     });
@@ -296,92 +261,7 @@ export class SesionesTrabajo implements OnInit {
       },
       error: (err) => {
         console.error('Error obtenerHistorial:', err);
-        this.snackBar.open('Error cargando historial: ' + err.status + ' ' + (err.error?.message || err.message), 'Cerrar', {duration: 8000});
-        this.loading.set(false);
-      }
-    });
-  }
-
-  abrirCaja() {
-    this.loading.set(true);
-    this.sesionService.abrirSesion(this.userId).subscribe({
-      next: (sesion) => {
-        this.sesionActiva.set(sesion);
-        this.loading.set(false);
-        
-        // Mostrar Mensaje de Bienvenida Personalizado
-        const welcomeDialog = this.dialog.open(WelcomeDialog, {
-          width: '420px',
-          disableClose: true,
-          data: { nombre: this.authService.getCurrentUser()?.nombre }
-        });
-
-        welcomeDialog.afterClosed().subscribe(() => {
-          this.router.navigate(['/ventas']);
-        });
-
-        if (this.esAdmin()) {
-          this.cargarHistorial();
-        }
-      },
-      error: (err) => {
-        const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
-        this.snackBar.open('Error al abrir caja: ' + errorMsg, 'Cerrar', { duration: 5000 });
-        this.loading.set(false);
-      }
-    });
-  }
-
-  cerrarCaja() {
-    const sesion = this.sesionActiva();
-    if (!sesion) return;
-
-    this.loading.set(true);
-    
-    // 1. Obtener resumen
-    this.sesionService.obtenerResumenCierre(sesion.id).subscribe({
-      next: (resumen) => {
-        this.loading.set(false);
-        // 2. Mostrar diálogo
-        const dialogRef = this.dialog.open(ResumenCierreDialog, {
-          width: '450px',
-          disableClose: true,
-          data: resumen
-        });
-
-        // 3. Esperar confirmación
-        dialogRef.afterClosed().subscribe(confirm => {
-          if (confirm) {
-            this.ejecutarCierreReal(sesion.id);
-          }
-        });
-      },
-      error: (err) => {
-        this.loading.set(false);
-        const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
-        this.snackBar.open('Error al obtener resumen: ' + errorMsg, 'Cerrar', { duration: 5000 });
-      }
-    });
-  }
-
-  private ejecutarCierreReal(sesionId: number) {
-    this.loading.set(true);
-    this.sesionService.cerrarSesion(sesionId).subscribe({
-      next: () => {
-        this.dialog.open(SuccessDialog, {
-          width: '400px',
-          data: { 
-            title: '¡Caja Cerrada!', 
-            message: 'La sesión de trabajo ha finalizado y el cierre se ha registrado con éxito.' 
-          }
-        });
-        
-        this.sesionActiva.set(null);
-        this.cargarDatos();
-      },
-      error: (err) => {
-        const errorMsg = typeof err.error === 'string' ? err.error : (err.error?.message || err.message);
-        this.snackBar.open('Error al cerrar caja: ' + errorMsg, 'Cerrar', { duration: 5000 });
+        this.toast.error('No se pudo cargar el historial de sesiones.', 'Error');
         this.loading.set(false);
       }
     });

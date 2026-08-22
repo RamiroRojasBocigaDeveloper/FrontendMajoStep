@@ -5,12 +5,13 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { ProductoService, Producto } from './producto';
 import { ProductoDialog } from './producto-dialog/producto-dialog';
+import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-productos',
@@ -72,7 +73,7 @@ import { ProductoDialog } from './producto-dialog/producto-dialog';
           <ng-container matColumnDef="precios">
             <th mat-header-cell *matHeaderCellDef> Precio Venta </th>
             <td mat-cell *matCellDef="let p"> 
-              <span class="price-tag">{{p.precioVenta | currency:'USD'}}</span>
+              <span class="price-tag">{{p.precioVenta | currency:'COP'}}</span>
             </td>
           </ng-container>
 
@@ -146,7 +147,7 @@ import { ProductoDialog } from './producto-dialog/producto-dialog';
 export class Productos implements OnInit {
   private productoService = inject(ProductoService);
   private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
 
   productos = signal<Producto[]>([]);
   loading = false;
@@ -164,7 +165,7 @@ export class Productos implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.snackBar.open('Error al cargar catálogo', 'OK');
+        this.toast.error('No se pudo cargar el catálogo de productos.', 'Error');
         this.loading = false;
       }
     });
@@ -190,15 +191,23 @@ export class Productos implements OnInit {
         if (producto?.id) {
           this.productoService.actualizar(producto.id, result).subscribe({
             next: () => {
-              this.snackBar.open('Producto actualizado', 'OK');
+              this.toast.success('El producto fue actualizado correctamente.', 'Producto actualizado');
               this.cargarProductos();
+            },
+            error: (err) => {
+              const msg = err.error?.message || err.error || 'No se pudo actualizar el producto';
+              this.toast.error(msg, 'Error');
             }
           });
         } else {
           this.productoService.crear(result).subscribe({
             next: () => {
-              this.snackBar.open('Producto creado exitosamente', 'OK');
+              this.toast.success('El producto se creó exitosamente.', 'Producto creado');
               this.cargarProductos();
+            },
+            error: (err) => {
+              const msg = err.error?.message || err.error || 'No se pudo crear el producto';
+              this.toast.error(msg, 'Error');
             }
           });
         }
@@ -207,13 +216,32 @@ export class Productos implements OnInit {
   }
 
   eliminar(p: Producto) {
-    if (confirm(`¿Estás seguro de eliminar "${p.nombre}"?`)) {
-      this.productoService.eliminar(p.id!).subscribe({
-        next: () => {
-          this.snackBar.open('Producto eliminado', 'OK');
-          this.cargarProductos();
-        }
-      });
-    }
+    const dialogRef = this.dialog.open(SuccessDialog, {
+      width: '420px',
+      disableClose: true,
+      data: {
+        icon: '🗑️',
+        title: 'Eliminar Producto',
+        message: `¿Estás seguro de eliminar "${p.nombre}"? Esta acción no se puede deshacer.`,
+        btnText: 'Eliminar',
+        btnIcon: 'delete',
+        showCancel: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirm => {
+      if (confirm) {
+        this.productoService.eliminar(p.id!).subscribe({
+          next: () => {
+            this.toast.success('El producto fue eliminado del sistema.', 'Producto eliminado');
+            this.cargarProductos();
+          },
+          error: (err) => {
+            const msg = err.error?.message || err.error || 'No se puede eliminar este producto';
+            this.toast.error(msg, 'Error');
+          }
+        });
+      }
+    });
   }
 }

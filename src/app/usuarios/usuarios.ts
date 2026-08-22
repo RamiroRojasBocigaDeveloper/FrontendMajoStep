@@ -5,7 +5,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UsuarioService, Usuario } from './usuario';
@@ -14,7 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-reset-password-dialog',
@@ -123,7 +122,7 @@ export class ResetPasswordDialog {
  
           <ng-container matColumnDef="sueldo">
             <th mat-header-cell *matHeaderCellDef class="text-center"> Sueldo Diario </th>
-            <td mat-cell *matCellDef="let u" class="text-center"> {{u.sueldoDiario | currency:'USD':'symbol':'1.0-0'}} </td>
+            <td mat-cell *matCellDef="let u" class="text-center"> {{u.sueldoDiario | currency:'COP':'symbol':'1.0-0'}} </td>
           </ng-container>
  
           <ng-container matColumnDef="acciones">
@@ -182,7 +181,7 @@ export class ResetPasswordDialog {
 export class Usuarios implements OnInit {
   private usuarioService = inject(UsuarioService);
   private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
 
   usuarios = signal<Usuario[]>([]);
   loading = false;
@@ -213,17 +212,10 @@ export class Usuarios implements OnInit {
       if (result) {
         this.usuarioService.actualizar(usuario.id!, result).subscribe({
           next: () => {
-            this.dialog.open(SuccessDialog, {
-              width: '420px',
-              data: { 
-                icon: '👤',
-                title: 'Usuario Actualizado', 
-                message: `Los datos de ${usuario.nombre} se han guardado correctamente.` 
-              }
-            });
+            this.toast.success(`Los datos de ${usuario.nombre} se han guardado correctamente.`, 'Usuario actualizado');
             this.cargarUsuarios();
           },
-          error: (err) => this.snackBar.open('Error al actualizar', 'Cerrar', { duration: 3000 })
+          error: (err) => this.toast.error('No se pudo actualizar el usuario.', 'Error')
         });
       }
     });
@@ -238,17 +230,10 @@ export class Usuarios implements OnInit {
       if (result) {
         this.usuarioService.crear(result).subscribe({
           next: (nuevo) => {
-            this.dialog.open(SuccessDialog, {
-              width: '420px',
-              data: { 
-                icon: '🎉',
-                title: 'Usuario Creado', 
-                message: `El usuario ${nuevo.nombre} ha sido registrado exitosamente.` 
-              }
-            });
+            this.toast.success(`El usuario ${nuevo.nombre} ha sido registrado exitosamente.`, 'Usuario creado');
             this.cargarUsuarios();
           },
-          error: (err) => this.snackBar.open('Error al crear', 'Cerrar', { duration: 3000 })
+          error: (err) => this.toast.error('No se pudo crear el usuario.', 'Error')
         });
       }
     });
@@ -258,15 +243,12 @@ export class Usuarios implements OnInit {
     if (usuario.id) {
       this.usuarioService.cambiarEstado(usuario.id, !usuario.activo).subscribe({
         next: () => {
-          this.dialog.open(SuccessDialog, {
-            width: '420px',
-            data: { 
-              icon: '🔄',
-              title: 'Estado Cambiado', 
-              message: `El usuario ${usuario.nombre} ahora está ${!usuario.activo ? 'Activo' : 'Inactivo'}.` 
-            }
-          });
+          this.toast.success(`El usuario ${usuario.nombre} ahora está ${!usuario.activo ? 'Activo' : 'Inactivo'}.`, 'Estado cambiado');
           this.cargarUsuarios();
+        },
+        error: (err) => {
+          const msg = err.error?.message || err.error || 'No se pudo cambiar el estado';
+          this.toast.error(msg, 'Error');
         }
       });
     }
@@ -291,17 +273,10 @@ export class Usuarios implements OnInit {
       if (nuevaPassword && usuario.id) {
         this.usuarioService.resetearPassword(usuario.id, nuevaPassword).subscribe({
           next: () => {
-            this.dialog.open(SuccessDialog, {
-              width: '420px',
-              data: { 
-                icon: '🔐',
-                title: 'Contraseña Actualizada', 
-                message: `La contraseña de ${usuario.nombre} se ha reseteado correctamente.` 
-              }
-            });
+            this.toast.success(`La contraseña de ${usuario.nombre} se ha reseteado correctamente.`, 'Contraseña actualizada');
           },
           error: () => {
-            this.snackBar.open('Error al resetear la contraseña', 'Cerrar', { duration: 4000 });
+            this.toast.error('No se pudo resetear la contraseña.', 'Error');
           }
         });
       }

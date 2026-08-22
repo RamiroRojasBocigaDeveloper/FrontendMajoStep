@@ -6,9 +6,10 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../auth/auth';
+import { SuccessDialog } from '../shared/success-dialog';
 
 @Component({
   selector: 'app-login',
@@ -21,8 +22,8 @@ import { AuthService } from '../auth/auth';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatSnackBarModule,
-    MatIconModule
+    MatIconModule,
+    MatDialogModule
   ],
   templateUrl: './login.html',
   styleUrl: './login.css'
@@ -31,8 +32,8 @@ export class Login {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
+  private dialog = inject(MatDialog);
 
   loginForm: FormGroup;
   loading = false;
@@ -52,20 +53,20 @@ export class Login {
       this.errorMessage.set(null);
       this.cdr.detectChanges();
 
-      console.log('Intentando iniciar sesión para:', this.loginForm.value.email);
-      
       this.authService.login(this.loginForm.value).subscribe({
         next: (response) => {
-          console.log('Inicio de sesión exitoso para:', response.email);
           this.loading = false;
-          this.snackBar.open('¡Bienvenido! ' + response.nombre, 'Cerrar', { 
-            duration: 3000,
-            panelClass: ['success-snackbar'] 
+          this.dialog.open(SuccessDialog, {
+            width: '420px',
+            data: { 
+              icon: '👋',
+              title: '¡Hola, ' + response.nombre + '!', 
+              message: 'Has iniciado sesión correctamente. Bienvenido de nuevo.' 
+            }
           });
           this.router.navigate(['/']);
         },
         error: (err) => {
-          console.error('Error de autenticación observado:', err);
           this.loading = false;
           
           let message = 'Credenciales incorrectas. Por favor, verifica tu correo y contraseña.';
@@ -73,10 +74,7 @@ export class Login {
           if (err.status === 500) message = 'Error interno del servidor. Inténtalo más tarde.';
           
           this.errorMessage.set(message);
-          this.snackBar.open('Error: ' + message, 'Cerrar', { 
-            duration: 6000,
-            panelClass: ['error-snackbar']
-          });
+          
           this.cdr.detectChanges(); // Asegurar que el Signal actualice la vista
         }
       });

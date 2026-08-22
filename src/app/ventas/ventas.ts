@@ -10,9 +10,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
-import { MatDialogModule, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
+import { MatDialogModule, MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -25,12 +24,127 @@ import { AuthService } from '../auth/auth';
 import { SesionTrabajoService, SesionTrabajo } from '../sesiones-trabajo/sesion-trabajo';
 import { UsuarioService, Usuario } from '../usuarios/usuario';
 import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
+import { ResumenCierreDialog } from '../sesiones-trabajo/sesiones-trabajo';
 
 
 interface ItemCarrito extends Producto {
   cantidadVenta: number;
   precioUnitario: number;
+}
+
+@Component({
+  selector: 'app-venta-historial-dialog',
+  standalone: true,
+  imports: [CommonModule, MatTableModule, MatButtonModule, MatIconModule, MatDialogModule, MatDatepickerModule, MatNativeDateModule, MatFormFieldModule, MatInputModule, ReactiveFormsModule],
+  template: `
+    <div class="historial-wrapper">
+      <h2 mat-dialog-title>Historial de Ventas</h2>
+      
+      <div class="filters">
+        <mat-form-field appearance="outline">
+          <mat-label>Desde</mat-label>
+          <input matInput [matDatepicker]="picker1" [formControl]="fechaInicio">
+          <mat-datepicker-toggle matSuffix [for]="picker1"></mat-datepicker-toggle>
+          <mat-datepicker #picker1></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Hasta</mat-label>
+          <input matInput [matDatepicker]="picker2" [formControl]="fechaFin">
+          <mat-datepicker-toggle matSuffix [for]="picker2"></mat-datepicker-toggle>
+          <mat-datepicker #picker2></mat-datepicker>
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" (click)="buscar()" [disabled]="loading">
+          <mat-icon>search</mat-icon> Buscar
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table mat-table [dataSource]="ventas()" class="full-width">
+          <ng-container matColumnDef="factura">
+            <th mat-header-cell *matHeaderCellDef> Factura </th>
+            <td mat-cell *matCellDef="let v"> {{v.numeroFactura}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef> Fecha </th>
+            <td mat-cell *matCellDef="let v"> {{v.createdAt | date:'short'}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="total">
+            <th mat-header-cell *matHeaderCellDef> Total </th>
+            <td mat-cell *matCellDef="let v"> {{v.total | currency:'COP' : 'symbol' : '1.0-0'}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef> - </th>
+            <td mat-cell *matCellDef="let v">
+              <button mat-icon-button color="accent" (click)="seleccionar(v)">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="['factura', 'fecha', 'total', 'acciones']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['factura', 'fecha', 'total', 'acciones'];"></tr>
+        </table>
+        <div *ngIf="ventas().length === 0 && !loading" class="empty">No hay ventas en este rango.</div>
+        <div *ngIf="loading" class="empty">Cargando...</div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .historial-wrapper { padding: 20px; max-height: 80vh; display: flex; flex-direction: column; }
+    .filters { display: flex; gap: 10px; align-items: baseline; margin-bottom: 20px; }
+    .table-container { flex: 1; overflow-y: auto; min-height: 300px; }
+    .empty { text-align: center; padding: 40px; color: #999; }
+    ::ng-deep .mat-mdc-dialog-content { max-height: none !important; }
+  `]
+})
+export class VentaHistorialDialog implements OnInit {
+  private ventaService = inject(VentaService);
+  dialogRef = inject(MatDialogRef<VentaHistorialDialog>);
+  
+  fechaInicio = new FormControl(new Date());
+  fechaFin = new FormControl(new Date());
+  ventas = signal<any[]>([]);
+  loading = false;
+
+  ngOnInit() {
+    this.buscar();
+  }
+
+  buscar() {
+    if (!this.fechaInicio.value || !this.fechaFin.value) return;
+    
+    this.loading = true;
+    const inicio = new Date(this.fechaInicio.value);
+    inicio.setHours(0,0,0,0);
+    const fin = new Date(this.fechaFin.value);
+    fin.setHours(23,59,59,999);
+
+    this.ventaService.obtenerPorRango(this.fechaLocal(inicio), this.fechaLocal(fin)).subscribe({
+      next: (res) => {
+        this.ventas.set(res);
+        this.loading = false;
+      },
+      error: () => this.loading = false
+    });
+  }
+
+  private fechaLocal(d: Date): string {
+    const yr = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    return `${yr}-${mo}-${da}`;
+  }
+
+  seleccionar(venta: any) {
+    this.dialogRef.close(venta);
+  }
 }
 
 @Component({
@@ -55,13 +169,17 @@ interface ItemCarrito extends Producto {
     MatTooltipModule
   ],
   template: `
-    <div class="venta-grid" *ngIf="sesionActiva(); else cajaCerrada">
+    <div class="venta-grid" *ngIf="sesionActiva() || isAdmin(); else cajaCerrada">
       <!-- Sección Izquierda: Buscador y Carrito -->
       <div class="pos-section">
         <mat-card class="pink-card">
           <mat-card-header>
             <mat-icon mat-card-avatar color="primary">search</mat-icon>
             <mat-card-title>Buscador de Calzado</mat-card-title>
+            <span class="spacer"></span>
+            <button mat-stroked-button color="primary" *ngIf="isAdmin()" (click)="abrirHistorial()" style="margin-right: 8px;">
+              <mat-icon>history</mat-icon> Historial / Editar
+            </button>
           </mat-card-header>
           
           <mat-card-content>
@@ -83,7 +201,7 @@ interface ItemCarrito extends Producto {
                     <div class="product-option">
                       <span class="prod-name">{{producto.referencia}}</span>
                       <span class="prod-ref">{{producto.nombre}}</span>
-                      <span class="prod-price">{{producto.precioVenta | currency:'USD'}}</span>
+                      <span class="prod-price">{{producto.precioVenta | currency:'COP' : 'symbol' : '1.0-0'}}</span>
                       <span class="stock-badge" [class.badge-ok]="producto.stockActual > 5" [class.badge-low]="producto.stockActual > 0 && producto.stockActual <= 5" [class.badge-empty]="producto.stockActual <= 0">
                         {{ producto.stockActual <= 0 ? 'Sin stock' : 'Stock: ' + producto.stockActual }}
                       </span>
@@ -119,7 +237,7 @@ interface ItemCarrito extends Producto {
                 <td mat-cell *matCellDef="let item"> 
                   <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width: 130px;">
                     <span matPrefix>$</span>
-                    <input matInput type="number" [(ngModel)]="item.precioUnitario" (ngModelChange)="calcularTotal()">
+                    <input matInput type="number" min="0" [(ngModel)]="item.precioUnitario" (ngModelChange)="calcularTotal()">
                   </mat-form-field>
                 </td>
               </ng-container>
@@ -137,7 +255,7 @@ interface ItemCarrito extends Producto {
 
               <ng-container matColumnDef="subtotal">
                 <th mat-header-cell *matHeaderCellDef> Subtotal </th>
-                <td mat-cell *matCellDef="let item"> {{ (item.precioUnitario * item.cantidadVenta) | currency:'USD'}} </td>
+                <td mat-cell *matCellDef="let item"> {{ (item.precioUnitario * item.cantidadVenta) | currency:'COP' : 'symbol' : '1.0-0'}} </td>
               </ng-container>
 
               <ng-container matColumnDef="acciones">
@@ -166,8 +284,13 @@ interface ItemCarrito extends Producto {
         <mat-card class="total-card">
           <mat-card-content>
             <div class="total-row">
-              <span class="label">Total a Pagar</span>
-              <span class="value">{{ calcularTotal() | currency:'USD' }}</span>
+              <span class="label">{{ editMode() ? 'Editando Factura' : 'Total a Pagar' }}</span>
+              <span class="value" *ngIf="!editMode()">{{ calcularTotal() | currency:'COP' : 'symbol' : '1.0-0' }}</span>
+              <span class="edit-factura" *ngIf="editMode()">{{ facturaEnEdicion() }}</span>
+            </div>
+            <div class="total-row" *ngIf="editMode()">
+               <span class="label">Nuevo Total</span>
+               <span class="value">{{ calcularTotal() | currency:'COP' : 'symbol' : '1.0-0' }}</span>
             </div>
             <mat-divider></mat-divider>
             <div class="items-count">
@@ -182,6 +305,32 @@ interface ItemCarrito extends Producto {
                 </mat-option>
               </mat-select>
             </mat-form-field>
+
+            <!-- Calculadora de Pago en Efectivo -->
+            <div class="cash-section" *ngIf="metodoSeleccionadoEsEfectivo()">
+              <h3 class="payment-title">¿Con cuánto paga el cliente?</h3>
+              <mat-form-field appearance="outline" class="cash-input">
+                <span matPrefix>$&nbsp;</span>
+                <input matInput type="number" min="0" [(ngModel)]="efectivoRecibido" placeholder="Digite aquí el monto">
+              </mat-form-field>
+
+              <div class="quick-amounts-label" *ngIf="montosRapidos().length > 0">O escoja el monto:</div>
+              <div class="quick-amounts" *ngIf="montosRapidos().length > 0">
+                <button mat-stroked-button type="button" class="quick-amount-btn"
+                        *ngFor="let m of montosRapidos()"
+                        [class.selected]="efectivoRecibido === m"
+                        (click)="efectivoRecibido = m">
+                  {{ m | currency:'COP' : 'symbol' : '1.0-0' }}
+                </button>
+              </div>
+
+              <div class="change-box" *ngIf="recibidoNumerico() > 0"
+                   [class.insufficient]="cambioADevolver() < 0">
+                <span class="change-label">{{ cambioADevolver() >= 0 ? 'CAMBIO A DEVOLVER' : '¡OJO! FALTA PLATA' }}</span>
+                <span class="change-value">{{ valorCambio() | currency:'COP' : 'symbol' : '1.0-0' }}</span>
+                <span class="change-hint" *ngIf="cambioADevolver() >= 0">Recibido: {{ recibidoNumerico() | currency:'COP' : 'symbol' : '1.0-0' }} — Total: {{ calcularTotal() | currency:'COP' : 'symbol' : '1.0-0' }}</span>
+              </div>
+            </div>
 
             <!-- Fecha Histórica (Solo Administradores) -->
             <div *ngIf="isAdmin()" style="margin-top: 15px; margin-bottom: 15px;">
@@ -210,8 +359,21 @@ interface ItemCarrito extends Producto {
             <button mat-raised-button class="checkout-btn" 
                     [disabled]="carrito().length === 0 || loading || !metodoPagoSeleccionado"
                     (click)="finalizarVenta()">
-              <mat-icon>check_circle</mat-icon>
-              {{ loading ? 'Procesando...' : 'FINALIZAR VENTA' }}
+              <mat-icon>{{ editMode() ? 'save' : 'check_circle' }}</mat-icon>
+              {{ loading ? 'Procesando...' : (editMode() ? 'GUARDAR CAMBIOS' : 'FINALIZAR VENTA') }}
+            </button>
+
+            <button mat-button class="cancel-edit-btn" *ngIf="editMode()" (click)="cancelarEdicion()">
+               <mat-icon>close</mat-icon> Cancelar Edición
+            </button>
+
+            <mat-divider style="margin: 20px 0;"></mat-divider>
+
+            <button mat-raised-button class="close-box-btn" 
+                    *ngIf="sesionActiva()"
+                    (click)="cerrarCajaDirecto()">
+              <mat-icon>power_settings_new</mat-icon>
+              CERRAR CAJA Y TURNO
             </button>
           </mat-card-content>
         </mat-card>
@@ -228,10 +390,12 @@ interface ItemCarrito extends Producto {
             <p>Por seguridad, no puedes realizar ventas si tu turno no está activo.</p>
             <p>Debes abrir tu caja antes de registrar movimientos de dinero.</p>
             
-            <button mat-flat-button color="primary" class="open-box-btn" (click)="irAAbrirCaja()">
-              <mat-icon>point_of_sale</mat-icon>
-              Ir a Abrir Caja
-            </button>
+            <div class="lock-actions">
+              <button mat-raised-button color="primary" class="quick-open-btn" (click)="abrirCajaDirecto()" [disabled]="loading">
+                <mat-icon>play_circle</mat-icon>
+                {{ loading ? 'Abriendo...' : 'ABRIR CAJA AHORA' }}
+              </button>
+            </div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -270,6 +434,7 @@ interface ItemCarrito extends Producto {
     }
     .total-row .label { font-size: 14px; opacity: 0.9; }
     .total-row .value { font-size: 48px; font-weight: 800; color: var(--primary-pink); }
+    .edit-factura { font-size: 20px; font-weight: 800; color: #333; margin-top: 5px; }
     
     .checkout-btn {
       width: 100%;
@@ -358,6 +523,16 @@ interface ItemCarrito extends Producto {
       text-align: center;
       padding: 40px;
       border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      max-width: 400px;
+    }
+    .lock-icon { font-size: 80px; width: 80px; height: 80px; color: #999; margin-bottom: 20px; }
+    .lock-card h2 { font-weight: 800; color: #333; margin-bottom: 10px; }
+    .lock-card p { color: #666; margin-bottom: 5px; }
+    .lock-actions { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+    .quick-open-btn { padding: 25px !important; font-weight: 800; border-radius: 12px; font-size: 16px; letter-spacing: 1px; }
+
+    .lock-card {
       max-width: 450px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.1);
       border-top: 8px solid var(--primary-pink);
@@ -386,6 +561,70 @@ interface ItemCarrito extends Producto {
       border-radius: 12px;
       font-weight: bold;
     }
+    
+    .close-box-btn {
+      width: 100%;
+      background-color: #f44336 !important;
+      color: white !important;
+      padding: 25px 0 !important;
+      font-size: 16px;
+      border-radius: 12px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .spacer { flex: 1 1 auto; }
+    .cancel-edit-btn { width: 100%; margin-top: 10px; color: #666; }
+
+    /* Calculadora de Efectivo */
+    .cash-section { margin-top: 15px; text-align: left; }
+    .cash-input { width: 100%; margin-top: 0; }
+    ::ng-deep .cash-input input { font-size: 24px !important; font-weight: 800; text-align: center; color: #333; }
+    /* El placeholder debe verse SIEMPRE en este campo (anula la regla global de styles.css que lo oculta en reposo) */
+    ::ng-deep .cash-input.mat-mdc-form-field:not(.mat-mdc-form-field-should-float) .mat-mdc-input-element::placeholder,
+    ::ng-deep .cash-input .mat-mdc-input-element::placeholder {
+      color: #b5b5b5 !important;
+      opacity: 1 !important;
+      -webkit-text-fill-color: #b5b5b5 !important;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    ::ng-deep .cash-input .mat-mdc-form-field-subscript-wrapper { display: none; }
+    .quick-amounts-label {
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #666;
+      padding-left: 4px;
+    }
+    .quick-amounts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+    .quick-amount-btn {
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--primary-pink) !important;
+      border-color: #f3c1d4 !important;
+    }
+    .quick-amount-btn.selected {
+      background: #fce4ec !important;
+      border-color: var(--primary-pink) !important;
+    }
+    .change-box {
+      margin-top: 14px;
+      padding: 14px 10px;
+      border-radius: 16px;
+      background: #e8f5e9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .change-label { font-size: 13px; font-weight: 800; letter-spacing: 1px; color: #2e7d32; }
+    .change-value { font-size: 38px; font-weight: 800; color: #2e7d32; line-height: 1.1; }
+    .change-hint { font-size: 11px; color: #55775a; margin-top: 4px; }
+    .change-box.insufficient { background: #ffebee; }
+    .change-box.insufficient .change-label,
+    .change-box.insufficient .change-value { color: #c62828; }
   `]
 })
 export class Ventas implements OnInit {
@@ -399,6 +638,9 @@ export class Ventas implements OnInit {
   carrito = signal<ItemCarrito[]>([]);
   sesionActiva = signal<SesionTrabajo | null>(null);
   usuarios = signal<Usuario[]>([]);
+  editMode = signal(false);
+  facturaEnEdicion = signal('');
+  ventaIdEnEdicion = signal<number | null>(null);
   displayedColumns: string[] = ['producto', 'precio', 'cantidad', 'subtotal', 'acciones'];
 
   private productoService = inject(ProductoService);
@@ -408,11 +650,43 @@ export class Ventas implements OnInit {
   private sesionService = inject(SesionTrabajoService);
   private usuarioService = inject(UsuarioService);
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
   private dialog = inject(MatDialog);
 
   metodosPago: MetodoPago[] = [];
   metodoPagoSeleccionado = 1;
+  efectivoRecibido: number | null = null;
+
+  metodoSeleccionadoEsEfectivo(): boolean {
+    const mp = this.metodosPago.find(m => m.id === this.metodoPagoSeleccionado);
+    return !!mp && mp.nombre.toLowerCase().includes('efectivo');
+  }
+
+  recibidoNumerico(): number {
+    const r = Number(this.efectivoRecibido);
+    return isFinite(r) && r > 0 ? r : 0;
+  }
+
+  cambioADevolver(): number {
+    return this.recibidoNumerico() - this.calcularTotal();
+  }
+
+  valorCambio(): number {
+    return Math.abs(this.cambioADevolver());
+  }
+
+  // Botones rápidos según billetes colombianos: monto exacto + billetes que cubren el total
+  // (los clientes suelen pagar con 50.000 o 100.000 aunque la compra sea pequeña)
+  montosRapidos(): number[] {
+    const total = this.calcularTotal();
+    if (total <= 0) return [];
+    const billetes = [1000, 2000, 5000, 10000, 20000, 50000, 100000];
+    const montos = new Set<number>([total]);
+    billetes.forEach(b => {
+      if (b >= total) montos.add(b);
+    });
+    return Array.from(montos).sort((a, b) => a - b).slice(0, 6);
+  }
 
   isAdmin(): boolean {
     return this.authService.isAdmin();
@@ -467,9 +741,6 @@ export class Ventas implements OnInit {
     });
   }
 
-  irAAbrirCaja() {
-    this.router.navigate(['/sesiones-trabajo']);
-  }
 
   abrirImagen(url: string) {
     if (!url) return;
@@ -491,7 +762,7 @@ export class Ventas implements OnInit {
   agregarAlCarrito(producto: Producto) {
     // BLOQUEO: No permitir agregar productos sin stock
     if (producto.stockActual <= 0) {
-      this.snackBar.open(`🚫 "${producto.nombre}" no tiene stock disponible.`, 'Entendido', { duration: 4000 });
+      this.toast.warning(`"${producto.nombre}" no tiene stock disponible.`, 'Sin stock');
       return;
     }
 
@@ -502,7 +773,7 @@ export class Ventas implements OnInit {
     if (index >= 0) {
       // BLOQUEO: No superar el stock disponible
       if (actual[index].cantidadVenta >= producto.stockActual) {
-        this.snackBar.open(`⚠️ No puedes agregar más de ${producto.stockActual} unidades de "${producto.nombre}".`, 'OK', { duration: 3500 });
+        this.toast.warning(`No puedes agregar más de ${producto.stockActual} unidades de "${producto.nombre}".`, 'Límite de stock');
         return;
       }
       actual[index].cantidadVenta += 1;
@@ -513,9 +784,9 @@ export class Ventas implements OnInit {
     }
     
     if (nuevaCant >= producto.stockActual) {
-      this.snackBar.open(`⚠️ Último en stock: ${producto.nombre} (${producto.stockActual} und.)`, 'Aceptar', { duration: 4000 });
+      this.toast.warning(`Último en stock: ${producto.nombre} (${producto.stockActual} und.)`, 'Última unidad');
     } else {
-      this.snackBar.open(`✅ Agregado: ${producto.nombre}`, 'OK', { duration: 2000 });
+      this.toast.success(`Agregado: ${producto.nombre}`, 'Añadido al carrito', 2000);
     }
   }
 
@@ -527,7 +798,7 @@ export class Ventas implements OnInit {
       
       // BLOQUEO: No permitir superar el stock disponible
       if (cambio > 0 && actual[index].cantidadVenta >= actual[index].stockActual) {
-        this.snackBar.open(`🚫 Stock máximo alcanzado para "${actual[index].nombre}" (${actual[index].stockActual} und.).`, 'OK', { duration: 3000 });
+        this.toast.warning(`Stock máximo alcanzado para "${actual[index].nombre}" (${actual[index].stockActual} und.).`, 'Límite de stock');
         return;
       }
 
@@ -536,7 +807,7 @@ export class Ventas implements OnInit {
         this.carrito.set([...actual]);
         
         if (nuevaCant === actual[index].stockActual && cambio > 0) {
-          this.snackBar.open(`⚠️ "${actual[index].nombre}" llegó al límite del stock (${actual[index].stockActual} und.).`, 'OK', { duration: 3000 });
+          this.toast.warning(`"${actual[index].nombre}" llegó al límite del stock (${actual[index].stockActual} und.).`, 'Última unidad');
         }
       } else {
         // Si la cantidad llega a 0, remover del carrito
@@ -555,8 +826,22 @@ export class Ventas implements OnInit {
 
   finalizarVenta() {
     const sesion = this.sesionActiva();
-    if (!sesion) {
-      this.snackBar.open('Error: Caja cerrada.', 'Cerrar');
+    
+    // Si no es admin y no hay sesión, bloquear
+    if (!this.isAdmin() && !sesion) {
+      this.toast.error('Caja cerrada. Debes abrir una sesión de trabajo para vender.', 'Caja cerrada');
+      return;
+    }
+
+    // Si es admin, no tiene sesión y no seleccionó vendedor, bloquear
+    if (this.isAdmin() && !sesion && !this.vendedorSeleccionado.value) {
+      this.toast.warning('Debes seleccionar un vendedor o abrir tu propia caja.', 'Acción requerida');
+      return;
+    }
+
+    const precioInvalido = this.carrito().some(i => !isFinite(i.precioUnitario) || i.precioUnitario <= 0);
+    if (precioInvalido) {
+      this.toast.error('Revisa los precios del carrito: deben ser mayores a 0.', 'Precio inválido');
       return;
     }
 
@@ -572,7 +857,6 @@ export class Ventas implements OnInit {
     }
 
     const request: any = {
-      sesionId: sesion.id,
       metodoPagoId: this.metodoPagoSeleccionado,
       descuento: 0,
       detalles: this.carrito().map(item => ({
@@ -581,6 +865,10 @@ export class Ventas implements OnInit {
         precioUnitario: item.precioUnitario
       }))
     };
+
+    if (sesion) {
+      request.sesionId = sesion.id;
+    }
 
     if (fhStr) {
       request.fechaHistorica = fhStr;
@@ -592,9 +880,13 @@ export class Ventas implements OnInit {
 
     const agotados = this.carrito().filter(p => p.cantidadVenta >= p.stockActual).map(p => p.nombre);
 
-    this.ventaService.procesarVenta(request).subscribe({
+    const obs = this.editMode() 
+      ? this.ventaService.actualizarVenta(this.ventaIdEnEdicion()!, request)
+      : this.ventaService.procesarVenta(request);
+
+    obs.subscribe({
       next: () => {
-        let msg = 'La venta se ha registrado correctamente.';
+        let msg = this.editMode() ? 'La venta se ha actualizado correctamente.' : 'La venta se ha registrado correctamente.';
         if (agotados.length > 0) {
           msg += ` ⚠️ ATENCIÓN: Poner en reposición: ${agotados.join(', ')}`;
         }
@@ -603,17 +895,120 @@ export class Ventas implements OnInit {
           width: '420px',
           data: { 
             icon: '🛍️',
-            title: '¡Venta Exitosa!', 
+            title: this.editMode() ? '¡Venta Actualizada!' : '¡Venta Exitosa!', 
             message: msg 
           }
         });
         
         this.carrito.set([]);
+        this.efectivoRecibido = null;
         this.loading = false;
+        this.editMode.set(false);
+        this.ventaIdEnEdicion.set(null);
       },
       error: (err: any) => {
         this.loading = false;
-        this.snackBar.open('Error al procesar la venta: ' + (err.error?.message || 'Error del servidor'), 'Cerrar');
+        this.toast.error('No se pudo procesar la venta: ' + (err.error?.message || 'Error del servidor'), 'Venta no registrada');
+      }
+    });
+  }
+
+  abrirHistorial() {
+    const dialogRef = this.dialog.open(VentaHistorialDialog, {
+      width: '800px'
+    });
+
+    dialogRef.afterClosed().subscribe(venta => {
+      if (venta) {
+        this.cargarVentaParaEdicion(venta);
+      }
+    });
+  }
+
+  cargarVentaParaEdicion(venta: any) {
+    this.editMode.set(true);
+    this.ventaIdEnEdicion.set(venta.id);
+    this.facturaEnEdicion.set(venta.numeroFactura);
+    this.metodoPagoSeleccionado = venta.metodoPagoId;
+    this.vendedorSeleccionado.setValue(venta.usuarioId || null);
+    
+    const items: ItemCarrito[] = venta.detalles.map((d: any) => ({
+      id: d.productoId,
+      nombre: d.productoNombre,
+      referencia: d.productoReferencia,
+      precioVenta: d.precioUnitario,
+      precioUnitario: d.precioUnitario,
+      cantidadVenta: d.cantidad,
+      stockActual: 999, // Para permitir editar sin bloqueo de stock inmediato
+      imagenUrl: '' // No viene en el detalle resumido, opcional
+    }));
+
+    this.carrito.set(items);
+    this.toast.info(`Editando factura ${venta.numeroFactura}`, 'Modo edición');
+  }
+
+  cancelarEdicion() {
+    this.editMode.set(false);
+    this.ventaIdEnEdicion.set(null);
+    this.facturaEnEdicion.set('');
+    this.carrito.set([]);
+    this.efectivoRecibido = null;
+    this.metodoPagoSeleccionado = this.metodosPago[0]?.id || 1;
+    this.vendedorSeleccionado.setValue(null);
+  }
+
+  abrirCajaDirecto() {
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+
+    this.loading = true;
+    this.sesionService.abrirSesion(user.id).subscribe({
+      next: (sesion) => {
+        this.sesionActiva.set(sesion);
+        this.loading = false;
+        this.toast.success('Ya puedes vender.', '¡Caja abierta con éxito!');
+      },
+      error: (err) => {
+        this.loading = false;
+        this.toast.error('No se pudo abrir la caja: ' + (err.error?.message || 'Error del servidor'), 'Error');
+      }
+    });
+  }
+
+  cerrarCajaDirecto() {
+    const sesion = this.sesionActiva();
+    if (!sesion) return;
+
+    this.loading = true;
+    this.sesionService.obtenerResumenCierre(sesion.id).subscribe({
+      next: (resumen) => {
+        this.loading = false;
+        const dialogRef = this.dialog.open(ResumenCierreDialog, {
+          width: '450px',
+          disableClose: true,
+          data: resumen
+        });
+
+        dialogRef.afterClosed().subscribe(confirm => {
+          if (confirm) {
+            this.loading = true;
+            this.sesionService.cerrarSesion(sesion.id).subscribe({
+              next: () => {
+                this.sesionActiva.set(null);
+                this.loading = false;
+                this.toast.success('Caja cerrada con éxito.', '¡Caja cerrada!');
+              },
+              error: (err) => {
+                this.loading = false;
+                this.toast.error('No se pudo cerrar la caja: ' + (err.error?.message || 'Error del servidor'), 'Error');
+              }
+            });
+          }
+        });
+      },
+      error: (err) => {
+        this.loading = false;
+        this.toast.error('No se pudo obtener el resumen: ' + (err.error?.message || 'Error del servidor'), 'Error');
       }
     });
   }

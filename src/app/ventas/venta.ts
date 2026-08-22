@@ -29,7 +29,15 @@ export class VentaService {
     return this.http.post(this.apiUrl, request);
   }
 
+  actualizarVenta(id: number, request: VentaRequest): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, request);
+  }
+
   obtenerPorSesion(sesionId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/sesion/${sesionId}`);
+  }
+
+  obtenerPorRango(inicio: string, fin: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/rango?inicio=${inicio}&fin=${fin}`);
   }
 }

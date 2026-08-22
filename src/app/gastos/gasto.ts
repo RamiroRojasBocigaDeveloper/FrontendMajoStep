@@ -8,8 +8,10 @@ export interface Gasto {
   descripcion: string;
   monto: number;
   createdAt: string; 
+  fechaRegistroManual?: string;
   categoriaGastoNombre?: string;
   subcategoriaGastoNombre?: string;
+  nombreUsuario?: string;
   sesionId?: number;
 }
 

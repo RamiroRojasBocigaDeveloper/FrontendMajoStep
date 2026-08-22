@@ -5,7 +5,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,7 +17,8 @@ import { MovimientoInventarioService } from './inventario';
 import { InventarioDialog } from './inventario-dialog/inventario-dialog';
 import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
-import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
+import { AuthService } from '../auth/auth';
 
 @Component({
   selector: 'app-inventarios',
@@ -54,7 +54,7 @@ import { SuccessDialog } from '../shared/success-dialog';
               </mat-option>
             </mat-select>
           </mat-form-field>
-          <button mat-fab color="primary" (click)="abrirDialogoProducto()" style="margin-top: -15px;" title="Nuevo Producto">
+          <button mat-fab color="primary" (click)="abrirDialogoProducto()" style="margin-top: -15px;" title="Nuevo Producto" *ngIf="isAdmin() || isJefe()">
             <mat-icon>add</mat-icon>
           </button>
         </div>
@@ -111,7 +111,7 @@ import { SuccessDialog } from '../shared/success-dialog';
 
           <ng-container matColumnDef="precio">
             <th mat-header-cell *matHeaderCellDef class="text-center"> Precio </th>
-            <td mat-cell *matCellDef="let p" class="text-center"> {{p.precioVenta | currency:'USD':'symbol':'1.0-0'}} </td>
+            <td mat-cell *matCellDef="let p" class="text-center"> {{p.precioVenta | currency:'COP':'symbol':'1.0-0'}} </td>
           </ng-container>
 
           <ng-container matColumnDef="stock">
@@ -147,8 +147,8 @@ import { SuccessDialog } from '../shared/success-dialog';
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns();"></tr>
         </table>
 
         <div *ngIf="loading" class="loading-state">
@@ -267,8 +267,8 @@ import { SuccessDialog } from '../shared/success-dialog';
       display: inline-block;
       box-shadow: 0 2px 4px rgba(123, 31, 162, 0.1);
     }
-    .cat-nina { background-color: #f48fb1 !important; color: #880e4f !important; font-weight: 800 !important; }
-    .cat-mujer { background-color: #d81b60 !important; color: #ffffff !important; font-weight: 700 !important; }
+    .cat-nina { background-color: #ec407a !important; color: #ffffff !important; font-weight: 800 !important; border: 1px solid #d81b60; }
+    .cat-mujer { background-color: #7b1fa2 !important; color: #ffffff !important; font-weight: 700 !important; }
     .cat-nino { background-color: #03a9f4 !important; color: #ffffff !important; font-weight: 700 !important; }
     .cat-hombre { background-color: #0d47a1 !important; color: #ffffff !important; font-weight: 700 !important; }
     .ref-text { 
@@ -287,7 +287,8 @@ export class Inventarios implements OnInit {
   private inventarioService = inject(MovimientoInventarioService);
   private categoriaService = inject(CategoriaService);
   private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
+  private authService = inject(AuthService);
 
   productos = signal<Producto[]>([]);
   categorias = signal<Categoria[]>([]);
@@ -336,7 +337,22 @@ export class Inventarios implements OnInit {
   }
 
   loading = false;
-  displayedColumns = ['referencia', 'nombre', 'talla', 'categoria', 'precio', 'stock', 'estado', 'acciones'];
+  
+  displayedColumns = computed(() => {
+    const columns = ['referencia', 'nombre', 'talla', 'categoria', 'precio', 'stock', 'estado'];
+    if (this.isAdmin() || this.isJefe()) {
+      columns.push('acciones');
+    }
+    return columns;
+  });
+
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  isJefe(): boolean {
+    return this.authService.isJefe();
+  }
 
 
   ngOnInit() {
@@ -359,7 +375,7 @@ export class Inventarios implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.snackBar.open('Error al cargar el inventario', 'Cerrar');
+        this.toast.error('No se pudo cargar el inventario.', 'Error');
         this.loading = false;
       }
     });
@@ -385,18 +401,11 @@ export class Inventarios implements OnInit {
       if (result) {
         this.inventarioService.registrarMovimiento(result).subscribe({
           next: () => {
-            this.dialog.open(SuccessDialog, {
-              width: '420px',
-              data: { 
-                icon: '📦',
-                title: 'Movimiento Registrado', 
-                message: 'El stock se ha actualizado correctamente.' 
-              }
-            });
+            this.toast.success('El stock se ha actualizado correctamente.', 'Movimiento registrado');
             this.cargarProductos();
           },
           error: (err) => {
-            this.snackBar.open('Error: ' + (err.error?.message || 'No se pudo registrar'), 'Cerrar');
+            this.toast.error(err.error?.message || 'No se pudo registrar el movimiento', 'Error');
           }
         });
       }
@@ -414,29 +423,23 @@ export class Inventarios implements OnInit {
         if (producto?.id) {
           this.productoService.actualizar(producto.id, result).subscribe({
             next: () => {
-              this.dialog.open(SuccessDialog, {
-                width: '420px',
-                data: { 
-                  icon: '📝',
-                  title: 'Producto Actualizado', 
-                  message: `Los cambios en ${result.nombre} se han guardado.` 
-                }
-              });
+              this.toast.success(`Los cambios en ${result.nombre} se han guardado.`, 'Producto actualizado');
               this.cargarProductos();
+            },
+            error: (err) => {
+              const msg = err.error?.message || err.error || 'No se pudo actualizar el producto';
+              this.toast.error(msg, 'Error');
             }
           });
         } else {
           this.productoService.crear(result).subscribe({
             next: (nuevo) => {
-              this.dialog.open(SuccessDialog, {
-                width: '420px',
-                data: { 
-                  icon: '🆕',
-                  title: 'Producto Creado', 
-                  message: `El producto ${nuevo.nombre} ya está en el inventario.` 
-                }
-              });
+              this.toast.success(`El producto ${nuevo.nombre} ya está en el inventario.`, 'Producto creado');
               this.cargarProductos();
+            },
+            error: (err) => {
+              const msg = err.error?.message || err.error || 'No se pudo crear el producto';
+              this.toast.error(msg, 'Error');
             }
           });
         }

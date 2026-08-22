@@ -10,9 +10,10 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { AuthService } from '../auth/auth';
 import { MatDialogModule, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ResumenCierreDialog } from '../sesiones-trabajo/sesiones-trabajo';
 import { ProductoService, Producto } from '../productos/producto';
+import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-confirm-logout-dialog',
@@ -96,8 +97,7 @@ export class ConfirmLogoutDialog {
     MatIconModule,
     MatButtonModule,
     MatBadgeModule,
-    MatDialogModule,
-    MatSnackBarModule
+    MatDialogModule
   ],
   template: `
     <mat-sidenav-container class="sidenav-container">
@@ -111,9 +111,9 @@ export class ConfirmLogoutDialog {
             <mat-icon matListItemIcon>shopping_cart</mat-icon>
             <span matListItemTitle>Ventas (TPV)</span>
           </a>
-          <a mat-list-item routerLink="/sesiones-trabajo" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
+          <a mat-list-item routerLink="/sesiones-trabajo" routerLinkActive="active-link" *ngIf="isAdmin() || isJefe()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>point_of_sale</mat-icon>
-            <span matListItemTitle>Sesión / Caja</span>
+            <span matListItemTitle>Historial de Caja</span>
           </a>
           <a mat-list-item routerLink="/inventario" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon
@@ -124,7 +124,7 @@ export class ConfirmLogoutDialog {
             <span matListItemTitle>Inventario</span>
           </a>
 
-          <a mat-list-item routerLink="/categorias" routerLinkActive="active-link" (click)="cerrarMenuSiEsCelular(drawer)">
+          <a mat-list-item routerLink="/categorias" routerLinkActive="active-link" *ngIf="isAdmin() || isJefe()" (click)="cerrarMenuSiEsCelular(drawer)">
             <mat-icon matListItemIcon>category</mat-icon>
             <span matListItemTitle>Categorías</span>
           </a>
@@ -150,8 +150,8 @@ export class ConfirmLogoutDialog {
           </button>
           <span class="toolbar-title">MajoStep <span class="user-badge">{{ getNombreUsuario() }}</span></span>
           <span class="spacer"></span>
-          <button mat-icon-button (click)="logout()" title="Cerrar Sesión">
-            <mat-icon>logout</mat-icon>
+          <button mat-flat-button class="logout-btn-premium" (click)="logout()">
+            <mat-icon>power_settings_new</mat-icon> <span>SALIR</span>
           </button>
         </mat-toolbar>
         
@@ -300,6 +300,23 @@ export class ConfirmLogoutDialog {
       border-radius: 4px;
     }
     .alert-close:hover { background: #eee; color: #555; }
+    
+    .logout-btn-premium {
+      background: rgba(255,255,255,0.15) !important;
+      color: white !important;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 12px;
+      padding: 0 20px;
+      font-weight: 700;
+      height: 40px;
+      transition: all 0.3s;
+    }
+    .logout-btn-premium:hover {
+      background: #f44336 !important;
+      border-color: #f44336;
+      box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+    }
+    .logout-btn-premium mat-icon { margin-right: 8px; font-size: 20px; }
   `]
 })
 export class Layout implements OnInit {
@@ -307,7 +324,7 @@ export class Layout implements OnInit {
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private sesionService = inject(SesionTrabajoService);
-  private snackBar = inject(MatSnackBar);
+  private toast = inject(ToastService);
   private productoService = inject(ProductoService);
 
   isMobile = false;
@@ -393,17 +410,17 @@ export class Layout implements OnInit {
                   resumenRef.afterClosed().subscribe(confirm => {
                     if (confirm) {
                       // Cerramos caja y salimos con feedback
-                      const snackRef = this.snackBar.open('Finalizando sesión y cerrando caja...', undefined, { duration: 0 });
+                      this.toast.info('Finalizando sesión y cerrando caja...', 'Procesando');
                       
                       this.sesionService.cerrarSesion(sesion.id).subscribe({
                         next: () => {
-                          snackRef.dismiss();
-                          this.snackBar.open('Caja cerrada con éxito. ¡Hasta pronto!', 'Cerrar', { duration: 2000 });
+                          this.toast.dismissAll();
+                          this.toast.success('Caja cerrada con éxito. ¡Hasta pronto!', '¡Hasta pronto!');
                           this.ejecutarLogout();
                         },
                         error: (err: any) => {
                           console.error('Error cerrando caja:', err);
-                          snackRef.dismiss();
+                          this.toast.dismissAll();
                           
                           let serverMessage = 'Error desconocido';
                           if (err.error && typeof err.error === 'string') {
@@ -412,7 +429,7 @@ export class Layout implements OnInit {
                             serverMessage = err.message;
                           }
 
-                          this.snackBar.open(`Error al cerrar caja: ${serverMessage}. Cerrando sesión por seguridad.`, 'Descubierto', { duration: 6000 });
+                          this.toast.error(`No se pudo cerrar la caja: ${serverMessage}. Cerrando sesión por seguridad.`, 'Error');
                           this.ejecutarLogout();
                         }
                       });
@@ -420,7 +437,7 @@ export class Layout implements OnInit {
                   });
                 },
                 error: (err) => {
-                  this.snackBar.open('Error al generar resumen.', 'Cerrar', {duration: 3000});
+                  this.toast.error('No se pudo generar el resumen de cierre.', 'Error');
                 }
               });
             } else if (result === 'SOLO_SALIR') {
@@ -428,11 +445,33 @@ export class Layout implements OnInit {
             }
           });
         } else {
-          this.ejecutarLogout();
+          // Si la caja ya está cerrada, pedimos una confirmación simple pero bonita
+          this.confirmarLogout();
         }
       },
       error: () => {
-        // Si hay error (No tiene caja abierta), simplemente salimos
+        // Si hay error (No tiene caja abierta), simplemente salimos con confirmación
+        this.confirmarLogout();
+      }
+    });
+  }
+
+  private confirmarLogout() {
+    const dialogRef = this.dialog.open(SuccessDialog, {
+      width: '420px',
+      disableClose: true,
+      data: {
+        icon: '👋',
+        title: 'Cerrar Sesión',
+        message: '¿Estás seguro de que deseas cerrar sesión?',
+        btnText: 'Sí, salir',
+        btnIcon: 'logout',
+        showCancel: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirm => {
+      if (confirm) {
         this.ejecutarLogout();
       }
     });

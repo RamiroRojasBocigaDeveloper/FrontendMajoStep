@@ -1,15 +1,17 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { GastoService, Gasto } from './gasto';
 import { GastoDialog } from './gasto-dialog/gasto-dialog';
 import { AuthService } from '../auth/auth';
 import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
+import { SuccessDialog } from '../shared/success-dialog';
+import { ToastService } from '../shared/toast.service';
 
 
 @Component({
@@ -30,8 +32,8 @@ import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
           <h1>Gestión de Gastos</h1>
           <p>Registra salidas de dinero como nómina, servicios y compras locales</p>
         </div>
-        <button mat-fab color="warn" (click)="abrirDialogoGasto()" title="Registrar Gasto">
-          <mat-icon>add_circle</mat-icon>
+        <button mat-raised-button color="warn" class="add-gasto-btn" (click)="abrirDialogoGasto()">
+          <mat-icon>add_circle</mat-icon> REGISTRAR NUEVO GASTO
         </button>
       </div>
     </mat-card>
@@ -40,8 +42,13 @@ import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
       <mat-card-content>
         <table mat-table [dataSource]="gastos()" class="full-width">
           <ng-container matColumnDef="fecha">
-            <th mat-header-cell *matHeaderCellDef> Fecha </th>
-            <td mat-cell *matCellDef="let g"> {{g.createdAt | date:'short'}} </td>
+            <th mat-header-cell *matHeaderCellDef> Fechas (Negocio / Registro) </th>
+            <td mat-cell *matCellDef="let g"> 
+              <div class="date-container">
+                <span class="hist-date" title="Fecha de Negocio">{{(g.fechaRegistroManual || g.createdAt) | date:'dd/MM/yyyy'}}</span>
+                <span class="system-date" title="Fecha de Registro en Sistema">{{g.createdAt | date:'shortTime'}} ({{g.createdAt | date:'dd/MM'}})</span>
+              </div>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="descripcion">
@@ -60,7 +67,7 @@ import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
           <ng-container matColumnDef="monto">
             <th mat-header-cell *matHeaderCellDef> Monto </th>
             <td mat-cell *matCellDef="let g" class="monto-cell"> 
-              {{g.monto | currency:'USD'}} 
+              {{g.monto | currency:'COP'}} 
             </td>
           </ng-container>
 
@@ -132,10 +139,30 @@ import { SesionTrabajoService } from '../sesiones-trabajo/sesion-trabajo';
       font-weight: 700 !important;
     }
     .sub-badge {
-      font-size: 0.8em;
-      color: var(--primary-color);
       margin-left: 4px;
       font-weight: 500;
+    }
+    .add-gasto-btn {
+      padding: 25px 30px !important;
+      font-weight: 800;
+      border-radius: 12px;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+    }
+    .date-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .hist-date {
+      font-weight: 700;
+      color: #333;
+      font-size: 13px;
+    }
+    .system-date {
+      font-size: 10px;
+      color: #999;
+      font-style: italic;
     }
   `]
 })
@@ -144,7 +171,8 @@ export class Gastos implements OnInit {
   private authService = inject(AuthService);
   private sesionService = inject(SesionTrabajoService);
   private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private snackBar = inject(ToastService);
+  private router = inject(Router);
 
   gastos = signal<Gasto[]>([]);
   loading = false;
@@ -169,50 +197,97 @@ export class Gastos implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.snackBar.open('Error al cargar la lista de gastos', 'Cerrar');
+        this.snackBar.error('No se pudo cargar la lista de gastos.', 'Error');
         this.loading = false;
       }
     });
   }
 
   eliminar(id: number) {
-    if (confirm('¿Estás seguro de eliminar este gasto?')) {
-      this.gastoService.eliminar(id).subscribe({
-        next: () => {
-          this.snackBar.open('Gasto eliminado correctamente', 'OK');
-          this.cargarGastos();
-        }
-      });
-    }
+    const dialogRef = this.dialog.open(SuccessDialog, {
+      width: '420px',
+      disableClose: true,
+      data: {
+        icon: '🗑️',
+        title: 'Eliminar Gasto',
+        message: '¿Estás seguro de eliminar este gasto? Esta acción no se puede deshacer.',
+        btnText: 'Eliminar',
+        btnIcon: 'delete',
+        showCancel: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirm => {
+      if (confirm) {
+        this.gastoService.eliminar(id).subscribe({
+          next: () => {
+            this.snackBar.success('El registro de gasto se ha borrado correctamente.', 'Gasto eliminado');
+            this.cargarGastos();
+          },
+          error: (err) => {
+            this.snackBar.error(err.error?.message || 'No se pudo eliminar el gasto', 'Error');
+          }
+        });
+      }
+    });
   }
 
   abrirDialogoGasto() {
     const user = this.authService.getCurrentUser();
     if (!user) return;
 
-    this.loading = true;
-    this.sesionService.obtenerSesionActiva(user.id).subscribe({
-      next: (sesion) => {
-        this.loading = false;
-        const dialogRef = this.dialog.open(GastoDialog, {
-          width: '400px',
-          data: { sesionId: sesion.id }
-        });
+    if (this.isAdmin()) {
+      // Los administradores pueden abrir el diálogo directamente
+      this.ejecutarAbrirDialogo(null);
+    } else {
+      this.loading = true;
+      this.sesionService.obtenerSesionActiva(user.id).subscribe({
+        next: (sesion) => {
+          this.loading = false;
+          this.ejecutarAbrirDialogo(sesion.id);
+        },
+        error: () => {
+          this.loading = false;
+          const dialogRef = this.dialog.open(SuccessDialog, {
+            width: '420px',
+            data: { 
+              icon: '❌',
+              title: 'Caja Cerrada', 
+              titleColor: '#d32f2f',
+              message: 'No puedes registrar gastos si tu caja no está abierta. ¿Quieres ir a la sección de ventas para abrir tu turno?',
+              btnText: 'SÍ, IR A VENTAS',
+              btnIcon: 'point_of_sale',
+              showCancel: true
+            }
+          });
 
-        dialogRef.afterClosed().subscribe((result: any) => {
-          if (result) {
-            this.gastoService.crear(result).subscribe({
-              next: () => {
-                this.snackBar.open('Gasto registrado con éxito', 'OK');
-                this.cargarGastos();
-              }
-            });
+          dialogRef.afterClosed().subscribe(confirm => {
+            if (confirm) {
+              this.router.navigate(['/ventas']);
+            }
+          });
+        }
+      });
+    }
+  }
+
+  private ejecutarAbrirDialogo(sesionId: number | null) {
+    const dialogRef = this.dialog.open(GastoDialog, {
+      width: '400px',
+      data: { sesionId }
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        this.gastoService.crear(result).subscribe({
+          next: () => {
+            this.snackBar.success('El gasto se ha guardado correctamente.', 'Gasto registrado');
+            this.cargarGastos();
+          },
+          error: (err) => {
+            this.snackBar.error('No se pudo registrar el gasto: ' + (err.error?.message || 'Error del servidor'), 'Error');
           }
         });
-      },
-      error: () => {
-        this.loading = false;
-        this.snackBar.open('Debes tener una sesión abierta para registrar gastos', 'Cerrar');
       }
     });
   }
