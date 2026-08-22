@@ -76,7 +76,7 @@ interface ItemCarrito extends Producto {
 
           <ng-container matColumnDef="total">
             <th mat-header-cell *matHeaderCellDef> Total </th>
-            <td mat-cell *matCellDef="let v"> {{v.total | currency:'COP'}} </td>
+            <td mat-cell *matCellDef="let v"> {{v.total | currency:'COP' : 'symbol' : '1.0-0'}} </td>
           </ng-container>
 
           <ng-container matColumnDef="acciones">
@@ -201,7 +201,7 @@ export class VentaHistorialDialog implements OnInit {
                     <div class="product-option">
                       <span class="prod-name">{{producto.referencia}}</span>
                       <span class="prod-ref">{{producto.nombre}}</span>
-                      <span class="prod-price">{{producto.precioVenta | currency:'COP'}}</span>
+                      <span class="prod-price">{{producto.precioVenta | currency:'COP' : 'symbol' : '1.0-0'}}</span>
                       <span class="stock-badge" [class.badge-ok]="producto.stockActual > 5" [class.badge-low]="producto.stockActual > 0 && producto.stockActual <= 5" [class.badge-empty]="producto.stockActual <= 0">
                         {{ producto.stockActual <= 0 ? 'Sin stock' : 'Stock: ' + producto.stockActual }}
                       </span>
@@ -255,7 +255,7 @@ export class VentaHistorialDialog implements OnInit {
 
               <ng-container matColumnDef="subtotal">
                 <th mat-header-cell *matHeaderCellDef> Subtotal </th>
-                <td mat-cell *matCellDef="let item"> {{ (item.precioUnitario * item.cantidadVenta) | currency:'COP'}} </td>
+                <td mat-cell *matCellDef="let item"> {{ (item.precioUnitario * item.cantidadVenta) | currency:'COP' : 'symbol' : '1.0-0'}} </td>
               </ng-container>
 
               <ng-container matColumnDef="acciones">
@@ -285,12 +285,12 @@ export class VentaHistorialDialog implements OnInit {
           <mat-card-content>
             <div class="total-row">
               <span class="label">{{ editMode() ? 'Editando Factura' : 'Total a Pagar' }}</span>
-              <span class="value" *ngIf="!editMode()">{{ calcularTotal() | currency:'COP' }}</span>
+              <span class="value" *ngIf="!editMode()">{{ calcularTotal() | currency:'COP' : 'symbol' : '1.0-0' }}</span>
               <span class="edit-factura" *ngIf="editMode()">{{ facturaEnEdicion() }}</span>
             </div>
             <div class="total-row" *ngIf="editMode()">
                <span class="label">Nuevo Total</span>
-               <span class="value">{{ calcularTotal() | currency:'COP' }}</span>
+               <span class="value">{{ calcularTotal() | currency:'COP' : 'symbol' : '1.0-0' }}</span>
             </div>
             <mat-divider></mat-divider>
             <div class="items-count">
@@ -305,6 +305,32 @@ export class VentaHistorialDialog implements OnInit {
                 </mat-option>
               </mat-select>
             </mat-form-field>
+
+            <!-- Calculadora de Pago en Efectivo -->
+            <div class="cash-section" *ngIf="metodoSeleccionadoEsEfectivo()">
+              <h3 class="payment-title">¿Con cuánto paga el cliente?</h3>
+              <mat-form-field appearance="outline" class="cash-input">
+                <span matPrefix>$&nbsp;</span>
+                <input matInput type="number" min="0" [(ngModel)]="efectivoRecibido" placeholder="Digite aquí el monto">
+              </mat-form-field>
+
+              <div class="quick-amounts-label" *ngIf="montosRapidos().length > 0">O escoja el monto:</div>
+              <div class="quick-amounts" *ngIf="montosRapidos().length > 0">
+                <button mat-stroked-button type="button" class="quick-amount-btn"
+                        *ngFor="let m of montosRapidos()"
+                        [class.selected]="efectivoRecibido === m"
+                        (click)="efectivoRecibido = m">
+                  {{ m | currency:'COP' : 'symbol' : '1.0-0' }}
+                </button>
+              </div>
+
+              <div class="change-box" *ngIf="recibidoNumerico() > 0"
+                   [class.insufficient]="cambioADevolver() < 0">
+                <span class="change-label">{{ cambioADevolver() >= 0 ? 'CAMBIO A DEVOLVER' : '¡OJO! FALTA PLATA' }}</span>
+                <span class="change-value">{{ valorCambio() | currency:'COP' : 'symbol' : '1.0-0' }}</span>
+                <span class="change-hint" *ngIf="cambioADevolver() >= 0">Recibido: {{ recibidoNumerico() | currency:'COP' : 'symbol' : '1.0-0' }} — Total: {{ calcularTotal() | currency:'COP' : 'symbol' : '1.0-0' }}</span>
+              </div>
+            </div>
 
             <!-- Fecha Histórica (Solo Administradores) -->
             <div *ngIf="isAdmin()" style="margin-top: 15px; margin-bottom: 15px;">
@@ -549,6 +575,56 @@ export class VentaHistorialDialog implements OnInit {
 
     .spacer { flex: 1 1 auto; }
     .cancel-edit-btn { width: 100%; margin-top: 10px; color: #666; }
+
+    /* Calculadora de Efectivo */
+    .cash-section { margin-top: 15px; text-align: left; }
+    .cash-input { width: 100%; margin-top: 0; }
+    ::ng-deep .cash-input input { font-size: 24px !important; font-weight: 800; text-align: center; color: #333; }
+    /* El placeholder debe verse SIEMPRE en este campo (anula la regla global de styles.css que lo oculta en reposo) */
+    ::ng-deep .cash-input.mat-mdc-form-field:not(.mat-mdc-form-field-should-float) .mat-mdc-input-element::placeholder,
+    ::ng-deep .cash-input .mat-mdc-input-element::placeholder {
+      color: #b5b5b5 !important;
+      opacity: 1 !important;
+      -webkit-text-fill-color: #b5b5b5 !important;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    ::ng-deep .cash-input .mat-mdc-form-field-subscript-wrapper { display: none; }
+    .quick-amounts-label {
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #666;
+      padding-left: 4px;
+    }
+    .quick-amounts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+    .quick-amount-btn {
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--primary-pink) !important;
+      border-color: #f3c1d4 !important;
+    }
+    .quick-amount-btn.selected {
+      background: #fce4ec !important;
+      border-color: var(--primary-pink) !important;
+    }
+    .change-box {
+      margin-top: 14px;
+      padding: 14px 10px;
+      border-radius: 16px;
+      background: #e8f5e9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .change-label { font-size: 13px; font-weight: 800; letter-spacing: 1px; color: #2e7d32; }
+    .change-value { font-size: 38px; font-weight: 800; color: #2e7d32; line-height: 1.1; }
+    .change-hint { font-size: 11px; color: #55775a; margin-top: 4px; }
+    .change-box.insufficient { background: #ffebee; }
+    .change-box.insufficient .change-label,
+    .change-box.insufficient .change-value { color: #c62828; }
   `]
 })
 export class Ventas implements OnInit {
@@ -579,6 +655,38 @@ export class Ventas implements OnInit {
 
   metodosPago: MetodoPago[] = [];
   metodoPagoSeleccionado = 1;
+  efectivoRecibido: number | null = null;
+
+  metodoSeleccionadoEsEfectivo(): boolean {
+    const mp = this.metodosPago.find(m => m.id === this.metodoPagoSeleccionado);
+    return !!mp && mp.nombre.toLowerCase().includes('efectivo');
+  }
+
+  recibidoNumerico(): number {
+    const r = Number(this.efectivoRecibido);
+    return isFinite(r) && r > 0 ? r : 0;
+  }
+
+  cambioADevolver(): number {
+    return this.recibidoNumerico() - this.calcularTotal();
+  }
+
+  valorCambio(): number {
+    return Math.abs(this.cambioADevolver());
+  }
+
+  // Botones rápidos según billetes colombianos: monto exacto + billetes que cubren el total
+  // (los clientes suelen pagar con 50.000 o 100.000 aunque la compra sea pequeña)
+  montosRapidos(): number[] {
+    const total = this.calcularTotal();
+    if (total <= 0) return [];
+    const billetes = [1000, 2000, 5000, 10000, 20000, 50000, 100000];
+    const montos = new Set<number>([total]);
+    billetes.forEach(b => {
+      if (b >= total) montos.add(b);
+    });
+    return Array.from(montos).sort((a, b) => a - b).slice(0, 6);
+  }
 
   isAdmin(): boolean {
     return this.authService.isAdmin();
@@ -793,6 +901,7 @@ export class Ventas implements OnInit {
         });
         
         this.carrito.set([]);
+        this.efectivoRecibido = null;
         this.loading = false;
         this.editMode.set(false);
         this.ventaIdEnEdicion.set(null);
@@ -843,6 +952,7 @@ export class Ventas implements OnInit {
     this.ventaIdEnEdicion.set(null);
     this.facturaEnEdicion.set('');
     this.carrito.set([]);
+    this.efectivoRecibido = null;
     this.metodoPagoSeleccionado = this.metodosPago[0]?.id || 1;
     this.vendedorSeleccionado.setValue(null);
   }
