@@ -19,6 +19,25 @@ export interface ResumenCierre {
   totalVentas: number;
   totalGastos: number;
   saldoNeto: number;
+  ventasPorMetodoPago: { [nombre: string]: number };
+  totalEfectivo: number;
+  totalNoEfectivo: number;
+  efectivoEsperado: number;
+}
+
+export interface DetalleVentaEfectivo {
+  productoNombre: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotalItem: number;
+}
+
+export interface VentaEfectivo {
+  numeroFactura: string;
+  total: number;
+  createdAt: string;
+  fechaRegistroManual?: string;
+  detalles: DetalleVentaEfectivo[];
 }
 
 @Injectable({
