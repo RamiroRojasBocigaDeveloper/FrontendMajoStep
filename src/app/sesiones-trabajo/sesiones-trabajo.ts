@@ -158,6 +158,14 @@ export class VentasEfectivoDialog {
           <span class="label">Total Gastos</span>
           <span class="value neg">{{ data.totalGastos | currency:'COP' }}</span>
         </div>
+        <div class="resumen-item" *ngIf="data.totalGastosDeCaja > 0">
+          <span class="label sub">Gastos de caja (descuentan efectivo)</span>
+          <span class="value neg">{{ data.totalGastosDeCaja | currency:'COP' }}</span>
+        </div>
+        <div class="resumen-item" *ngIf="data.totalGastosGenerales > 0">
+          <span class="label sub">Gastos generales (no afectan caja)</span>
+          <span class="value info">{{ data.totalGastosGenerales | currency:'COP' }}</span>
+        </div>
         <div class="divider"></div>
         <div class="resumen-item highlight" [ngClass]="getResultClass()">
           <span class="label">Efectivo Esperado en Caja</span>
@@ -188,6 +196,7 @@ export class VentasEfectivoDialog {
     .resumen-grid { display: flex; flex-direction: column; gap: 12px; text-align: left; background: #fafafa; padding: 16px; border-radius: 12px; border: 1px solid #eee; margin-bottom: 24px; }
     .resumen-item { display: flex; justify-content: space-between; align-items: center; }
     .label { font-size: 0.95rem; color: #555; font-weight: 500; }
+    .label.sub { font-size: 0.85rem; color: #777; padding-left: 10px; }
     .value { font-size: 1.1rem; font-weight: 700; }
     .pos { color: #2e7d32; }
     .neg { color: #d32f2f; }
