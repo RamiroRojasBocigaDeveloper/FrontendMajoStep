@@ -51,6 +51,24 @@ export interface GastoResponse {
   fechaRegistroManual?: string;
 }
 
+export interface InversionProducto {
+  productoId: number;
+  referencia: string;
+  nombre: string;
+  cantidad: number;
+  monto: number;
+}
+
+export interface EstadisticasInversionResponse {
+  gastosOperativos: number;
+  inversionMercanciaPeriodo: number;
+  inversionMercanciaTotal: number;
+  totalInvertidoPeriodo: number;
+  totalInvertidoAcumulado: number;
+  gastosOperativosPorSubcategoria: { [subcategoria: string]: number };
+  comprasPorProducto: InversionProducto[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -71,5 +89,16 @@ export class ReporteService {
       .set('inicio', inicio)
       .set('fin', fin);
     return this.http.get<DashboardResponse>(`${this.apiUrl}/dashboard/rango`, { params });
+  }
+
+  obtenerInversionGlobal(): Observable<EstadisticasInversionResponse> {
+    return this.http.get<EstadisticasInversionResponse>(`${this.apiUrl}/inversion/global`);
+  }
+
+  obtenerInversionPorRango(inicio: string, fin: string): Observable<EstadisticasInversionResponse> {
+    const params = new HttpParams()
+      .set('inicio', inicio)
+      .set('fin', fin);
+    return this.http.get<EstadisticasInversionResponse>(`${this.apiUrl}/inversion/rango`, { params });
   }
 }
