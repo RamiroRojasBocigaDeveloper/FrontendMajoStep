@@ -1,44 +1,128 @@
-<div class="login-container">
-  <mat-card class="login-card">
-    <div class="logo-placeholder">
-       <img src="logo.png" alt="MajoStep Logo" class="main-logo">
+<div class="login-shell">
+  <div class="aurora" aria-hidden="true">
+    <span class="blob blob-1"></span>
+    <span class="blob blob-2"></span>
+    <span class="blob blob-3"></span>
+    <span class="grid-lines"></span>
+  </div>
+
+  <section class="brand-panel">
+    <div class="brand-top">
+      <span class="brand-logo"><img src="logo.png" alt="MajoStep"></span>
+      <span class="brand-name">MajoStep</span>
     </div>
-    
-    <mat-card-header>
-      <mat-card-title>MajoStep</mat-card-title>
-      <mat-card-subtitle>Ingresa a tu cuenta</mat-card-subtitle>
-    </mat-card-header>
-    
-    <mat-card-content>
-      <div *ngIf="errorMessage()" class="error-alert">
-        <mat-icon>error_outline</mat-icon>
-        <span>{{ errorMessage() }}</span>
-      </div>
 
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Correo Electrónico</mat-label>
-          <input matInput formControlName="email" type="email" placeholder="ejemplo@correo.com">
-          <mat-icon matPrefix>email</mat-icon>
-          <mat-error *ngIf="loginForm.get('email')?.hasError('required')">El correo es obligatorio</mat-error>
-          <mat-error *ngIf="loginForm.get('email')?.hasError('email')">Formato de correo inválido</mat-error>
-        </mat-form-field>
+    <div class="brand-copy">
+      <span class="eyebrow">Colección &amp; Ventas</span>
+      <h1>Camina con <em>estilo</em>, gestiona con <em>calma</em>.</h1>
+      <p>Tu inventario, tus ventas y tus reportes en un solo lugar, con la elegancia que tu negocio merece.</p>
+      <ul class="brand-points">
+        <li><mat-icon>auto_awesome</mat-icon> Inventario siempre al día</li>
+        <li><mat-icon>insights</mat-icon> Reportes claros al instante</li>
+        <li><mat-icon>verified_user</mat-icon> Acceso seguro y privado</li>
+      </ul>
+    </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Contraseña</mat-label>
-          <input matInput [type]="hide ? 'password' : 'text'" formControlName="password" placeholder="Tu contraseña segura">
-          <mat-icon matPrefix>lock</mat-icon>
-          <button mat-icon-button matSuffix (click)="hide = !hide" type="button">
-            <mat-icon>{{hide ? 'visibility_off' : 'visibility'}}</mat-icon>
-          </button>
-          <mat-error *ngIf="loginForm.get('password')?.hasError('required')">La contraseña es obligatoria</mat-error>
-          <mat-error *ngIf="loginForm.get('password')?.hasError('minlength')">Mínimo 6 caracteres</mat-error>
-        </mat-form-field>
+    <p class="brand-footer">© {{ year }} MajoStep · Hecho con cariño</p>
+  </section>
 
-        <button mat-flat-button class="login-button full-width" [disabled]="loginForm.invalid || loading">
-          {{ loading ? 'Iniciando...' : 'INICIAR SESIÓN' }}
+  <main class="form-panel">
+    <div
+      #loginCard
+      class="login-card"
+      [class.shake]="shake()"
+      (mousemove)="onCardMouseMove($event)"
+      (mouseleave)="onCardMouseLeave()"
+    >
+      <span class="spotlight" aria-hidden="true"></span>
+
+      <div class="card-logo"><img src="logo.png" alt="MajoStep"></div>
+
+      <header class="card-head">
+        <h2>Bienvenido de nuevo</h2>
+        <p>Ingresa tus credenciales para continuar.</p>
+      </header>
+
+      @if (errorMessage()) {
+        <div class="error-alert" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+        <label class="field" [class.invalid]="showError('email')">
+          <span class="field-label">Correo electrónico</span>
+          <span class="field-control">
+            <mat-icon class="field-icon">alternate_email</mat-icon>
+            <input
+              type="email"
+              formControlName="email"
+              placeholder="tu@correo.com"
+              autocomplete="email"
+              (input)="clearError()"
+            >
+          </span>
+          @if (showError('email')) {
+            <span class="field-error">
+              {{ loginForm.get('email')?.hasError('required') ? 'El correo es obligatorio' : 'Formato de correo inválido' }}
+            </span>
+          }
+        </label>
+
+        <label class="field" [class.invalid]="showError('password')">
+          <span class="field-label">Contraseña</span>
+          <span class="field-control">
+            <mat-icon class="field-icon">lock</mat-icon>
+            <input
+              [type]="hidePassword() ? 'password' : 'text'"
+              formControlName="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              (input)="clearError()"
+              (keyup)="onPasswordKey($event)"
+              (keydown)="onPasswordKey($event)"
+            >
+            <button
+              class="ghost-icon"
+              type="button"
+              (click)="togglePassword()"
+              [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+            >
+              <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </span>
+          @if (capsLock()) {
+            <span class="field-hint"><mat-icon>keyboard_capslock</mat-icon> Bloq Mayús está activado</span>
+          }
+          @if (showError('password')) {
+            <span class="field-error">
+              {{ loginForm.get('password')?.hasError('required') ? 'La contraseña es obligatoria' : 'Mínimo 6 caracteres' }}
+            </span>
+          }
+        </label>
+
+        <div class="form-row">
+          <label class="remember">
+            <input type="checkbox" [formControl]="rememberControl">
+            <span class="check"></span>
+            Recordar correo
+          </label>
+          <span class="secure"><mat-icon>shield</mat-icon> Conexión segura</span>
+        </div>
+
+        <button class="submit" type="submit" [disabled]="loading()">
+          @if (loading()) {
+            <span class="spinner" aria-hidden="true"></span>
+            <span>Ingresando...</span>
+          } @else {
+            <span>Iniciar sesión</span>
+            <mat-icon>arrow_forward</mat-icon>
+          }
         </button>
       </form>
-    </mat-card-content>
-  </mat-card>
+
+      <p class="card-foot">¿Problemas para entrar? Contacta al administrador.</p>
+    </div>
+  </main>
 </div>
