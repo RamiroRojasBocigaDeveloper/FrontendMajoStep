@@ -24,6 +24,20 @@
   --secondary-brown: #8d6e63;
 }
 
+/* Pill de categoría — misma apariencia en Inventario y Categorías.
+   El color de fondo/texto se inyecta desde el componente con la paleta de la
+   dona (shared/categoria-color.ts: colorPill + textoSobre). */
+.category-pill {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
 html, body { 
   height: 100%; 
   margin: 0; 

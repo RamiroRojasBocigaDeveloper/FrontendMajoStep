@@ -10,6 +10,7 @@ import { CategoriaService, Categoria } from './categoria';
 import { CategoriaDialog } from './categoria-dialog/categoria-dialog';
 import { SuccessDialog } from '../shared/success-dialog';
 import { ToastService } from '../shared/toast.service';
+import { colorPill, textoSobre } from '../shared/categoria-color';
 
 @Component({
   selector: 'app-categorias',
@@ -51,6 +52,15 @@ export class Categorias implements OnInit {
         this.toast.error('No se pudieron cargar las categorías.', 'Error');
       }
     });
+  }
+
+  bgPill(nombre: string): string {
+    const i = this.categorias.findIndex(c => c.nombre === nombre);
+    return colorPill(nombre, i < 0 ? 0 : i);
+  }
+
+  fgPill(nombre: string): string {
+    return textoSobre(this.bgPill(nombre));
   }
 
   abrirDialogo(categoria?: Categoria) {

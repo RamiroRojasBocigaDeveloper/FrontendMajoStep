@@ -4,7 +4,6 @@ import { MatTableModule } from '@angular/material/table';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,6 +17,7 @@ import { InventarioDialog } from './inventario-dialog/inventario-dialog';
 import { ProductoDialog } from '../productos/producto-dialog/producto-dialog';
 import { ImagePreviewDialog } from '../shared/image-preview-dialog';
 import { ToastService } from '../shared/toast.service';
+import { colorPill, textoSobre } from '../shared/categoria-color';
 import { AuthService } from '../auth/auth';
 
 @Component({
@@ -30,7 +30,6 @@ import { AuthService } from '../auth/auth';
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
     MatDialogModule,
     MatSelectModule,
     MatFormFieldModule,
@@ -103,9 +102,9 @@ import { AuthService } from '../auth/auth';
           <ng-container matColumnDef="categoria">
             <th mat-header-cell *matHeaderCellDef class="text-center"> Categoría </th>
             <td mat-cell *matCellDef="let p" class="text-center"> 
-              <mat-chip-set>
-                <mat-chip [class]="getCategoriaClass(p.categoriaNombre)">{{p.categoriaNombre || 'Sin Categoría'}}</mat-chip>
-              </mat-chip-set>
+              <span class="category-pill"
+                    [style.background-color]="bgCat(p.categoriaNombre)"
+                    [style.color]="fgCat(p.categoriaNombre)">{{p.categoriaNombre || 'Sin Categoría'}}</span>
             </td>
           </ng-container>
 
@@ -246,7 +245,6 @@ import { AuthService } from '../auth/auth';
       font-size: 15px !important;
     }
     .text-center { text-align: center !important; }
-    ::ng-deep .mat-mdc-chip-set { justify-content: center; }
     code {
       background: #f5f5f5;
       padding: 2px 6px;
@@ -267,10 +265,6 @@ import { AuthService } from '../auth/auth';
       display: inline-block;
       box-shadow: 0 2px 4px rgba(123, 31, 162, 0.1);
     }
-    .cat-nina { background-color: #ec407a !important; color: #ffffff !important; font-weight: 800 !important; border: 1px solid #d81b60; }
-    .cat-mujer { background-color: #7b1fa2 !important; color: #ffffff !important; font-weight: 700 !important; }
-    .cat-nino { background-color: #03a9f4 !important; color: #ffffff !important; font-weight: 700 !important; }
-    .cat-hombre { background-color: #0d47a1 !important; color: #ffffff !important; font-weight: 700 !important; }
     .ref-text { 
       color: var(--primary-pink);
       font-weight: 700;
@@ -318,14 +312,15 @@ export class Inventarios implements OnInit {
     this.terminoBusqueda.set(value);
   }
 
-  getCategoriaClass(nombre: string | undefined): string {
-    if (!nombre) return '';
-    const n = nombre.toLowerCase();
-    if (n.includes('niña')) return 'cat-nina';
-    if (n.includes('mujer')) return 'cat-mujer';
-    if (n.includes('niño')) return 'cat-nino';
-    if (n.includes('hombre')) return 'cat-hombre';
-    return '';
+  bgCat(nombre: string | undefined): string {
+    if (!nombre) return '#e5e5e5';
+    const i = this.categorias().findIndex(c => c.nombre === nombre);
+    return colorPill(nombre, i < 0 ? 0 : i);
+  }
+
+  fgCat(nombre: string | undefined): string {
+    if (!nombre) return '#555555';
+    return textoSobre(this.bgCat(nombre));
   }
 
   getCantidadPorCategoria(catId: number | undefined): number {

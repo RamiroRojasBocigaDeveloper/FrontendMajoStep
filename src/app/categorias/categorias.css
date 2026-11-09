@@ -44,15 +44,7 @@
     margin-top: 20px;
 }
 
-.category-pill {
-    background-color: var(--light-pink);
-    color: #ad1457;
-    padding: 6px 14px;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 13px;
-    display: inline-block;
-}
+/* .category-pill: estilos globales en src/styles.css (compartidos con Inventario) */
 
 .loading-shade {
     display: flex;

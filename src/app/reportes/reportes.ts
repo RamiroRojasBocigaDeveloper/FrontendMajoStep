@@ -3,6 +3,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 Chart.register(...registerables);
+import { DONUT_PALETTE as PALETA_DONUT } from '../shared/categoria-color';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -498,18 +499,8 @@ export class Reportes implements OnInit, OnDestroy {
 
   // Paleta cualitativa tipo Tableau: tonos bien separados en hue y luminosidad,
   // diseñada para distinguirse incluso en monitores de baja calidad.
-  private readonly DONUT_PALETTE = [
-    '#4e79a7', // azul
-    '#f28e2b', // naranja
-    '#59a14f', // verde
-    '#e15759', // rojo
-    '#76b7b2', // teal
-    '#edc948', // amarillo
-    '#b07aa1', // violeta
-    '#ff9da7', // rosa
-    '#9c755f', // marrón
-    '#7f7f7f'  // gris
-  ];
+  // Fuente única: shared/categoria-color.ts (la usan los pills de Categorías).
+  private readonly DONUT_PALETTE = PALETA_DONUT;
 
   private sortedEntries(map: { [key: string]: number }): [string, number][] {
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
